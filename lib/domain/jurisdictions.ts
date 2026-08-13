@@ -41,7 +41,7 @@ export const REQUIREMENTS: SetupRequirement[] = [
     id: "entity.incorporate",
     title: "Register a business entity",
     severity: "recommended",
-    blocks: ["wholesale.first-account"],
+    blocks: ["ws_account_approved"],
     professionalAdvice: true,
     applies: (c) => c.entityJurisdiction === null,
     citations: [
@@ -62,7 +62,7 @@ export const REQUIREMENTS: SetupRequirement[] = [
     title: "Complete Amazon's tax interview",
     severity: "required",
     // Blocking, not deferrable: Amazon holds disbursements until it is done.
-    blocks: ["first-sale", "first-disbursement"],
+    blocks: ["ra_first_sale", "mk_first_disbursement"],
     professionalAdvice: false,
     applies: () => true,
     citations: [
@@ -83,7 +83,7 @@ export const REQUIREMENTS: SetupRequirement[] = [
     id: "us.w8bene",
     title: "Provide a W-8BEN-E as a non-US entity",
     severity: "required",
-    blocks: ["first-disbursement"],
+    blocks: ["mk_first_disbursement"],
     professionalAdvice: true,
     applies: (c) => c.marketplace === "amazon.com" && c.residency !== "US",
     citations: [
@@ -146,7 +146,7 @@ export const REQUIREMENTS: SetupRequirement[] = [
     id: "us.bank-account",
     title: "Open a US business bank account",
     severity: "recommended",
-    blocks: ["us.pay-suppliers"],
+    blocks: ["ws_first_order"],
     professionalAdvice: false,
     // Ordering rule that survives the CA/US/GB restriction: Mercury needs a
     // US entity and an EIN, so this cannot be the seller's first move.
@@ -175,7 +175,7 @@ export const REQUIREMENTS: SetupRequirement[] = [
     id: "payout.multicurrency",
     title: "Set up a receiving account in the marketplace currency",
     severity: "recommended",
-    blocks: ["first-disbursement"],
+    blocks: ["mk_first_disbursement"],
     professionalAdvice: false,
     applies: (c) => marketplaceHome(c.marketplace) !== c.residency,
     citations: [
@@ -202,7 +202,7 @@ export const REQUIREMENTS: SetupRequirement[] = [
     id: "us.resale-certificate",
     title: "Get a state resale certificate",
     severity: "conditional",
-    blocks: ["wholesale.first-order"],
+    blocks: ["ws_account_approved", "ws_first_order"],
     professionalAdvice: true,
     applies: (c) => c.marketplace === "amazon.com" && c.paysLocalSuppliers,
     citations: [
@@ -244,7 +244,7 @@ export const REQUIREMENTS: SetupRequirement[] = [
     id: "us.importer-of-record",
     title: "Arrange an importer of record for US-bound stock",
     severity: "required",
-    blocks: ["us.first-shipment"],
+    blocks: ["ra_first_shipment"],
     professionalAdvice: true,
     applies: (c) =>
       c.marketplace === "amazon.com" && c.residency !== "US" && c.holdsLocalInventory,
@@ -265,7 +265,7 @@ export const REQUIREMENTS: SetupRequirement[] = [
     id: "uk.vat.netp",
     title: "Register for UK VAT as a non-established seller",
     severity: "required",
-    blocks: ["uk.first-sale"],
+    blocks: ["ra_first_sale"],
     professionalAdvice: true,
     // The intuition sellers bring from home is wrong here: there is no
     // threshold for a non-established taxable person.
@@ -292,7 +292,7 @@ export const REQUIREMENTS: SetupRequirement[] = [
     id: "uk.eori",
     title: "Get a GB EORI number",
     severity: "required",
-    blocks: ["uk.first-shipment"],
+    blocks: ["ra_first_shipment"],
     professionalAdvice: false,
     applies: (c) => c.marketplace === "amazon.co.uk" && c.holdsLocalInventory,
     citations: [cite("HMRC", "Get an EORI number", { url: "https://www.gov.uk/eori" })],

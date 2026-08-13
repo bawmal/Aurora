@@ -31,7 +31,85 @@ export const MARKETPLACE_CURRENCY: Record<Marketplace, Currency> = {
   "amazon.co.uk": "GBP",
 }
 
-export type Track = "retail" | "expansion" | "wholesale"
+/**
+ * Tracks run in parallel, not in sequence. A seller can be mid-wholesale on
+ * one and pre-account on another, and the map has to hold that without
+ * forcing a restart.
+ */
+export type TrackType = "foundation" | "marketplace" | "retail" | "wholesale"
+
+export type SkillKey =
+  | "product-analysis"
+  | "keepa"
+  | "sourcing"
+  | "supplier-outreach"
+  | "wholesale"
+  | "operations"
+
+/** Skill levels run 1-5. 0 means the seller has not started. */
+export type SkillLevel = 0 | 1 | 2 | 3 | 4 | 5
+
+export interface SkillDefinition {
+  key: SkillKey
+  name: string
+  /** Five rungs, L1 to L5, described in terms of what the seller can do. */
+  levels: [string, string, string, string, string]
+}
+
+export interface MilestoneTemplate {
+  key: string
+  track: TrackType
+  name: string
+  description: string
+  order: number
+  /** Milestone keys that must be complete first. These are the gates. */
+  dependencies: string[]
+  /**
+   * Setup requirement ids from the jurisdiction table that gate this
+   * milestone. Most are conditional, so for many sellers this list resolves
+   * to nothing at all.
+   */
+  requires: string[]
+  buildsSkill?: SkillKey
+  teaches?: string
+  /** Instantiated once per targeted marketplace rather than once per seller. */
+  perMarketplace?: boolean
+}
+
+export interface TrackUnlock {
+  milestones: string[]
+  skills: { skill: SkillKey; level: SkillLevel }[]
+  requiresEntity: boolean
+}
+
+export interface TrackTemplate {
+  type: TrackType
+  name: string
+  description: string
+  startsUnlocked: boolean
+  unlock: TrackUnlock | null
+}
+
+export interface Achievement {
+  key: string
+  name: string
+  on:
+    | { milestone: string }
+    | { trackUnlocked: TrackType }
+    | { counter: "productsAnalysed"; at: number }
+}
+
+export type MilestoneStatus = "complete" | "next" | "available" | "gated"
+
+export interface MilestoneState {
+  key: string
+  track: TrackType
+  name: string
+  marketplace: Marketplace | null
+  status: MilestoneStatus
+  /** Why it is gated, in the seller's terms. Empty when it is not. */
+  blockedBy: string[]
+}
 
 export type Stage =
   | "pre-account"
@@ -141,6 +219,174 @@ export interface Analysis {
   workings: string[]
   /** Every recommendation states at least one risk. */
   risks: string[]
+}
+
+/**
+ * How much of the analysis rests on real inputs rather than defaults. Kept
+ * separate from the verdict: the verdict is what the numbers say, confidence
+ * is how much the numbers are worth.
+ */
+export interface DataQuality {
+  livePrice: boolean
+  liveFees: boolean
+  sellerEnteredCost: boolean
+  landedCostsEntered: boolean
+  knownCategory: boolean
+  /** Days of price and rank history available. */
+  historyDays: number
+  signalAgeDays: number
+}
+
+export interface Confidence {
+  /** 0.1 to 1, rounded to a tenth. Never a fake-precise decimal. */
+  value: number
+  /** Every deduction, named, so the seller can raise it deliberately. */
+  limits: string[]
+}
+
+/**
+ * The seller's own buying rules. The verdict is judged against these rather
+ * than against a house opinion, which is what makes it *their* verdict.
+ */
+export interface SellerCriteria {
+  minRoi: number
+  minMargin: number
+  minSalePrice: number
+  maxSalesRank: number
+  maxSellerCount: number
+  allowAmazonOnListing: boolean
+  seasonality: "any" | "avoid-highly-seasonal" | "evergreen-only"
+}
+
+export const DEFAULT_CRITERIA: SellerCriteria = {
+  minRoi: 0.3,
+  minMargin: 0.15,
+  minSalePrice: 15,
+  maxSalesRank: 150_000,
+  maxSellerCount: 15,
+  allowAmazonOnListing: false,
+  seasonality: "any",
+}
+
+export type Seasonality =
+  | "evergreen"
+  | "seasonal"
+  | "highly-seasonal"
+  | "event-driven"
+  | "unknown"
+
+/** Market signals, whether read live or entered by the seller. */
+export interface MarketSignals {
+  salesRank: number | null
+  salesRank90dAvg: number | null
+  sellerCount: number | null
+  fbaSellerCount: number | null
+  amazonOnListing: boolean | null
+  seasonality: Seasonality
+}
+
+export type SignalState = "strong" | "watch" | "weak" | "unknown"
+
+/** One line of the verdict: a plain claim, one number, and a state. */
+export interface Reason {
+  label: string
+  value: string
+  state: SignalState
+}
+
+export interface Review {
+  analysis: Analysis
+  /** May be harsher than the arithmetic alone: criteria can veto a BUY. */
+  verdict: Verdict
+  confidence: Confidence
+  reasons: Reason[]
+  risks: string[]
+}
+
+/**
+ * What the seller has actually done. Kept separate from the profile because
+ * this is the part that grows without bound, and separate from the
+ * curriculum because methodology lives in code and progress lives in the
+ * database.
+ */
+export interface JourneyProgress {
+  /** Completed milestone keys. Marketplace instances are suffixed, e.g. "mk_account@amazon.com". */
+  completedMilestones: string[]
+  skills: Partial<Record<SkillKey, SkillLevel>>
+  productsAnalysed: number
+  unlockedTracks: TrackType[]
+}
+
+export const NO_PROGRESS: JourneyProgress = {
+  completedMilestones: [],
+  skills: {},
+  productsAnalysed: 0,
+  unlockedTracks: [],
+}
+
+export interface UnlockProgress {
+  track: TrackType
+  unlocked: boolean
+  /** 0 to 1. Shown only for tracks close enough to be worth chasing. */
+  fraction: number
+  outstanding: string[]
+}
+
+/** The seller's two real levers, and the only assumptions the model takes. */
+export interface ProjectionInputs {
+  capital: number
+  /** ROI held per turn, as a fraction. */
+  targetRoi: number
+  /** How many times a year the capital cycles. */
+  turnsPerYear: number
+  /** Fraction of profit put back in. 1 is full reinvestment. */
+  reinvestRate: number
+}
+
+export interface ProjectionTurn {
+  turn: number
+  openingCapital: number
+  profit: number
+  closingCapital: number
+}
+
+export interface Projection {
+  turns: ProjectionTurn[]
+  endingCapital: number
+  /** Profit across every turn projected, reinvested or not. */
+  cumulativeProfit: number
+  finalTurnProfit: number
+  /** Final-turn profit spread over the length of a turn. */
+  monthlyRunRate: number
+  assumptions: ProjectionInputs
+}
+
+export type ReachabilityVerdict = "reachable" | "reachable-later" | "not-modelled"
+
+export interface Reachability {
+  verdict: ReachabilityVerdict
+  /** The monthly run rate the seller actually reaches by their own deadline. */
+  runRateAtDeadline: number
+  targetMonthlyProfit: number
+  /** Months until the target run rate arrives on the current trajectory. */
+  monthsToTarget: number | null
+  workings: string[]
+}
+
+export type ReadinessDimension =
+  | "business"
+  | "marketplace"
+  | "sourcing"
+  | "wholesale"
+  | "operations"
+  | "skill"
+
+export interface Readiness {
+  /** Per dimension, 0 to 1. Derived on read, never stored as truth. */
+  dimensions: Record<ReadinessDimension, number>
+  /** Per marketplace the seller targets, 0 to 1. */
+  marketplaces: Partial<Record<Marketplace, number>>
+  overall: number
 }
 
 export type Severity = "required" | "conditional" | "recommended"

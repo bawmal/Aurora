@@ -2,20 +2,74 @@
 @tailwind components;
 @tailwind utilities;
 
+/**
+ * Two colours carry the everyday UI: ink and one azure accent. Green, amber
+ * and red are reserved semantics. They appear only where they mean something
+ * (BUY / WATCH / PASS, complete / gated, up / flat / down), which is what
+ * makes them land when they do.
+ *
+ * Light is the default and there is no theme toggle. Surfaces that should
+ * feel like instruments opt into the dark world with `.ink-scope`, which
+ * overrides the same tokens for its subtree.
+ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --canvas: #f2f5f4;
+  --surface: #ffffff;
+  --surface-sunken: #ecf0ef;
+  --hairline: #e3e8e7;
+
+  --text: #0e1a1f;
+  --text-muted: #56676b;
+  --text-faint: #8a9a9c;
+
+  /* Azure does all the interactive work: links, focus, selection, "next". */
+  --accent: #1e5bf0;
+  --accent-press: #1a4fd6;
+  --accent-tint: #e8eefd;
+
+  /* Reserved. Meaning only, never decoration. */
+  --buy: #12a66b;
+  --buy-ink: #0b7a50;
+  --buy-tint: #e5f6ef;
+  --watch: #e08a00;
+  --watch-ink: #9a5b00;
+  --watch-tint: #fcf2e0;
+  --pass: #e24a44;
+  --pass-ink: #c0332e;
+  --pass-tint: #fdecea;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.ink-scope {
+  --canvas: #0b141a;
+  --surface: #14232b;
+  --surface-sunken: #0e1a22;
+  --hairline: rgba(255, 255, 255, 0.09);
+  --text: #eaf1f1;
+  --text-muted: #8da1a6;
+  --text-faint: #5e7278;
+  --accent: #4f86ff;
+  --accent-tint: rgba(79, 134, 255, 0.14);
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--text);
+  background: var(--canvas);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/**
+ * Any figure that sits in a column, updates live or reads as data goes
+ * mono with tabular figures. Figures inside a sentence do not. This split is
+ * most of what makes the product read as an instrument rather than a
+ * marketing page.
+ */
+.data {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
 }

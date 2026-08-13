@@ -89,7 +89,7 @@ describe("the positives", () => {
     expect(ids(withEntity)).toContain("us.ein")
     expect(ids(withEntity)).toContain("us.bank-account")
     const bank = withEntity.find((r) => r.id === "us.bank-account")
-    expect(bank?.blocks).toContain("us.pay-suppliers")
+    expect(bank?.blocks).toContain("ws_first_order")
   })
 })
 
@@ -97,27 +97,27 @@ describe("surfacing — the defence against a compliance checklist", () => {
   it("shows only what blocks the milestone the seller is on", () => {
     const context = ctx({ residency: "CA", marketplace: "amazon.com", holdsLocalInventory: true })
     const all = requirementsFor(context)
-    const due = dueRequirements(context, "first-disbursement")
+    const due = dueRequirements(context, "mk_first_disbursement")
     expect(due.length).toBeLessThan(all.length)
     expect(ids(due)).toContain("amz.tax-interview")
     expect(ids(due)).not.toContain("us.importer-of-record")
   })
 
   it("keeps ambient requirements that block nothing", () => {
-    const due = dueRequirements(ctx({ marketplace: "amazon.ca" }), "first-sale")
+    const due = dueRequirements(ctx({ marketplace: "amazon.ca" }), "ra_first_sale")
     expect(ids(due)).toContain("ca.gst-hst")
   })
 
   it("drops anything already completed", () => {
     const context = ctx({ marketplace: "amazon.com" })
-    const due = dueRequirements(context, "first-disbursement", ["amz.tax-interview"])
+    const due = dueRequirements(context, "mk_first_disbursement", ["amz.tax-interview"])
     expect(ids(due)).not.toContain("amz.tax-interview")
   })
 
   it("shows a US domestic seller almost nothing to start with", () => {
     const due = dueRequirements(
       ctx({ residency: "US", marketplace: "amazon.com", entityJurisdiction: "US" }),
-      "first-sale",
+      "ra_first_sale",
     )
     expect(due.length).toBeLessThanOrEqual(1)
   })
