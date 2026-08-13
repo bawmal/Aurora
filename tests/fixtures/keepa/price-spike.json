@@ -1,0 +1,63 @@
+{
+  "products": [
+    {
+      "asin": "B00SPIKE00",
+      "title": "Spiked listing",
+      "stats": {
+        "current": [
+          -1,
+          5200,
+          -1,
+          2200,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          4,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          4999,
+          -1
+        ],
+        "avg90": [
+          -1,
+          3300,
+          -1,
+          2100,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          3200,
+          -1
+        ],
+        "buyBoxIsAmazon": false,
+        "salesRankDrops30": 42
+      },
+      "packageWeight": 150,
+      "categoryTree": [
+        {
+          "name": "Beauty"
+        }
+      ]
+    }
+  ],
+  "tokensLeft": 18
+}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { review } from "@/lib/domain/review"
 import type {
   DataQuality,
@@ -43,6 +43,14 @@ const STATE_TINT: Record<SignalState, string> = {
 
 const WEIGHT_TIERS: WeightTier[] = ["envelope", "small", "standard", "large", "oversize"]
 
+interface LookupResponse {
+  error?: string
+  title?: string | null
+  product?: ProductInput
+  signals?: MarketSignals
+  assumptions?: string[]
+}
+
 const CATEGORIES = [
   "toys-games",
   "home-kitchen",
@@ -70,12 +78,48 @@ export function Analyser() {
   const [salesRank, setSalesRank] = useState("")
   const [sellerCount, setSellerCount] = useState("")
   const [amazonOnListing, setAmazonOnListing] = useState(false)
+  const [asin, setAsin] = useState("")
+  const [title, setTitle] = useState<string | null>(null)
+  const [assumptions, setAssumptions] = useState<string[]>([])
+  const [lookupError, setLookupError] = useState<string | null>(null)
+  const [looking, setLooking] = useState(false)
+  /** Typed numbers and read numbers are worth different amounts of confidence. */
+  const [live, setLive] = useState(false)
 
   const currency = MARKETPLACE_CURRENCY[marketplace]
 
+  // Everything Keepa knows is filled in; the seller supplies the one number
+  // it cannot know, which is what they are actually paying.
+  const lookup = useCallback(async () => {
+    setLooking(true)
+    setLookupError(null)
+    try {
+      const params = new URLSearchParams({ asin, marketplace })
+      const response = await fetch(`/api/product?${params}`)
+      const body = (await response.json()) as LookupResponse
+      if (!response.ok || !body.product) {
+        setLookupError(body.error ?? "Lookup failed.")
+        return
+      }
+      setTitle(body.title ?? null)
+      setSalePrice(body.product.salePrice.toFixed(2))
+      setCategory(body.product.category)
+      setWeightTier(body.product.weightTier)
+      setSalesRank(body.signals?.salesRank?.toString() ?? "")
+      setSellerCount(body.signals?.sellerCount?.toString() ?? "")
+      setAmazonOnListing(body.signals?.amazonOnListing === true)
+      setAssumptions(body.assumptions ?? [])
+      setLive(true)
+    } catch {
+      setLookupError("Could not reach the lookup service.")
+    } finally {
+      setLooking(false)
+    }
+  }, [asin, marketplace])
+
   const result = useMemo(() => {
     const product: ProductInput = {
-      asin: "",
+      asin,
       marketplace,
       category,
       salePrice: num(salePrice),
@@ -108,10 +152,10 @@ export function Analyser() {
       amazonOnListing,
       seasonality: "unknown",
     }
-    // Nothing is fetched live yet, so confidence is honest about how much of
-    // this rests on the seller's own numbers.
+    // Confidence is honest about how much of this rests on typed numbers
+    // rather than read ones, and rises on its own as fields are filled live.
     const quality: DataQuality = {
-      livePrice: false,
+      livePrice: live,
       liveFees: false,
       sellerEnteredCost: num(unitCost) > 0,
       landedCostsEntered: num(prep) > 0 || num(inbound) > 0,
@@ -121,6 +165,8 @@ export function Analyser() {
     }
     return review(product, profile, { ...DEFAULT_CRITERIA, minRoi: num(minRoi) / 100 }, signals, quality)
   }, [
+    asin,
+    live,
     marketplace,
     category,
     weightTier,
@@ -141,13 +187,44 @@ export function Analyser() {
   return (
     <div className="grid gap-8 md:grid-cols-[1fr_1.1fr]">
       <form className="grid gap-4" onSubmit={(e) => e.preventDefault()}>
+        <label className="grid gap-1 text-sm">
+          <span style={{ color: "var(--text-muted)" }}>ASIN</span>
+          <span className="flex gap-2">
+            <input
+              value={asin}
+              onChange={(e) => setAsin(e.target.value.toUpperCase())}
+              placeholder="B071CP6X88"
+              className="data flex-1 rounded-md border bg-transparent px-3 py-2"
+              style={{ borderColor: "var(--hairline)" }}
+            />
+            <button
+              type="button"
+              onClick={lookup}
+              disabled={looking || asin.length !== 10}
+              className="rounded-md px-3 py-2 text-sm font-medium text-white disabled:opacity-40"
+              style={{ background: "var(--accent)" }}
+            >
+              {looking ? "Reading" : "Look up"}
+            </button>
+          </span>
+          {title && (
+            <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+              {title}
+            </span>
+          )}
+          {lookupError && (
+            <span className="text-xs" style={{ color: "var(--pass-ink)" }}>
+              {lookupError}
+            </span>
+          )}
+        </label>
         <Select label="Marketplace" value={marketplace} onChange={(v) => setMarketplace(v as Marketplace)}>
           <option value="amazon.ca">amazon.ca</option>
           <option value="amazon.com">amazon.com</option>
           <option value="amazon.co.uk">amazon.co.uk</option>
         </Select>
         <Select label="Category" value={category} onChange={setCategory}>
-          {CATEGORIES.map((c) => (
+          {categoryOptions(category).map((c) => (
             <option key={c} value={c}>
               {c}
             </option>
@@ -249,6 +326,17 @@ export function Analyser() {
           </Card>
         </details>
 
+        {assumptions.length > 0 && (
+          <Card>
+            <Overline>Assumed, because the data did not say</Overline>
+            <ul className="mt-2 space-y-1 text-xs" style={{ color: "var(--text-muted)" }}>
+              {assumptions.map((assumption) => (
+                <li key={assumption}>{assumption}</li>
+              ))}
+            </ul>
+          </Card>
+        )}
+
         <Card tint="var(--watch-tint)">
           <Overline>Risks</Overline>
           <ul className="mt-2 space-y-1 text-xs">
@@ -339,6 +427,11 @@ function Fieldset({
       {children}
     </fieldset>
   )
+}
+
+/** A looked-up category Amazon has but our fee table does not must still show. */
+function categoryOptions(current: string): string[] {
+  return CATEGORIES.includes(current) || current === "" ? CATEGORIES : [current, ...CATEGORIES]
 }
 
 function num(value: string): number {

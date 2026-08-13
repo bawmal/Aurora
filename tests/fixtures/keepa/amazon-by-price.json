@@ -1,0 +1,62 @@
+{
+  "products": [
+    {
+      "asin": "B00AMZPRICE",
+      "title": "Amazon-stocked item",
+      "stats": {
+        "current": [
+          2499,
+          2599,
+          -1,
+          4200,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          8,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          2499,
+          -1
+        ],
+        "avg90": [
+          -1,
+          2650,
+          -1,
+          4000,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          2550,
+          -1
+        ],
+        "buyBoxIsAmazon": null
+      },
+      "packageWeight": 300,
+      "categoryTree": [
+        {
+          "name": "Home & Kitchen"
+        }
+      ]
+    }
+  ],
+  "tokensLeft": 280
+}

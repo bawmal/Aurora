@@ -25,9 +25,9 @@ model SellerProfile {
   // JSON array of Marketplace values.
   marketplaces String @default("[]")
 
-  stage    String  @default("pre-account")
-  minRoi   Float   @default(0.3)
-  capital  Float   @default(0)
+  stage   String @default("pre-account")
+  minRoi  Float  @default(0.3)
+  capital Float  @default(0)
 
   // Landed cost inputs. Stored flat so they are queryable.
   inboundPerUnit       Float @default(0)
@@ -57,5 +57,51 @@ model ProvenanceEntry {
   profile SellerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@unique([profileId, fieldPath])
+  @@index([profileId])
+}
+
+// Keepa responses are cached by what identifies the data, never by the
+// request URL, which carries the API key. Stale rows are kept rather than
+// deleted: when tokens run out they are the degradation path.
+model KeepaCache {
+  key       String   @id
+  asin      String
+  domain    Int
+  tier      String
+  body      String
+  fetchedAt DateTime @default(now())
+
+  @@index([asin, domain])
+}
+
+// Products persist the *inputs* to an analysis and never its conclusions.
+// Verdict, confidence and buy-below are recomputed on read, so changing a
+// seller's ROI floor re-prices the whole library with nothing to invalidate.
+model Product {
+  id          String  @id @default(cuid())
+  profileId   String
+  asin        String
+  marketplace String
+  title       String?
+  category    String
+  salePrice   Float
+  priceSource String
+  weightTier  String
+  unitCost    Float?
+
+  salesRank       Int?
+  salesRank90dAvg Int?
+  sellerCount     Int?
+  amazonOnListing Boolean?
+  demandPerMonth  Int?
+  seasonality     String   @default("unknown")
+
+  // Every default we had to invent, surfaced with the product.
+  assumptions String @default("[]")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([profileId, asin, marketplace])
   @@index([profileId])
 }
