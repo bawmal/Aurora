@@ -108,15 +108,17 @@ export function Analyser() {
     setTitle(null)
     setSeason(null)
     setHistoryDays(0)
-    setSalePrice("39.99")
-    setCategory("toys-games")
-    setWeightTier("standard")
+    if (live) {
+      setSalePrice("39.99")
+      setCategory("toys-games")
+      setWeightTier("standard")
+    }
     setSalesRank("")
     setSellerCount("")
     setAmazonOnListing(false)
     setAssumptions([])
     setLive(false)
-  }, [])
+  }, [live])
 
   // Everything Keepa knows is filled in; the seller supplies the one number
   // it cannot know, which is what they are actually paying.

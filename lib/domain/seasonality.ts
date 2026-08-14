@@ -86,7 +86,7 @@ export function analyseSeasonality(monthlyRank: (number | null)[]): SeasonalProf
   const slowerMonths = known
     .filter(
       (m) =>
-        peakMonths.length >= 5 &&
+        peakMonths.length >= 6 &&
         !peakMonths.includes(m.month) &&
         m.rank >= bestPeakRank * 2 &&
         m.rank < annualMean * 1.6,
@@ -216,19 +216,18 @@ export function describeSeason(
   // A peak covering half the year is not a peak, it is a product that sells
   // fine except for a dead patch. Naming six months as "hardest" reads as
   // noise; naming the dead patch is the thing that changes a buy.
-  if (profile.peakMonths.length >= 5) {
-    if (
-      profile.quietMonths.length > 0 &&
-      hasConsecutiveRun(profile.quietMonths, 2)
-    ) {
-      return `Sells well most of the year, and goes quiet in ${listMonths(profile.quietMonths)}. Stock bought just before that sits.`
+  if (profile.peakMonths.length >= 6) {
+    const weakerMonths = [
+      ...new Set([...profile.slowerMonths, ...profile.quietMonths]),
+    ].sort((a, b) => a - b)
+    if (weakerMonths.length > 0) {
+      const consequence =
+        profile.quietMonths.length > 0
+          ? "; stock bought just before that sits"
+          : ""
+      return `Sells well most of the year, and slows through ${listMonths(weakerMonths)}${consequence}.`
     }
-    if (profile.slowerMonths.length > 0) {
-      return `Sells well most of the year, and slows through ${listMonths(profile.slowerMonths)}.`
-    }
-    return profile.quietMonths.length > 0
-      ? `Sells well most of the year, and goes quiet in ${listMonths(profile.quietMonths)}. Stock bought just before that sits.`
-      : "Sells at much the same rate all year, so timing is not the risk here."
+    return "Sells at much the same rate all year, so timing is not the risk here."
   }
 
   const when = listMonths(profile.peakMonths)
@@ -251,19 +250,6 @@ export function describeSeason(
       : ""
 
   return `Sells hardest in ${when}.${strength} ${timing}`
-}
-
-function hasConsecutiveRun(months: number[], minimum: number): boolean {
-  let run = 1
-  for (let index = 1; index < months.length; index++) {
-    if (months[index] === months[index - 1] + 1) {
-      run++
-      if (run >= minimum) return true
-    } else {
-      run = 1
-    }
-  }
-  return months.length > 1 && months[0] === 1 && months[months.length - 1] === 12
 }
 
 /** Consecutive months read as a window: "September to December", not a list. */

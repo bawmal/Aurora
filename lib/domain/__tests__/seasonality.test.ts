@@ -77,12 +77,14 @@ describe("describeSeason", () => {
     // Six months called "hardest" is noise. What changes a buy is knowing
     // which months the product dies in.
     const said = describeSeason(analyseSeasonality(JANUARY_PEAK), 6)
-    expect(said).toContain("goes quiet in October to December")
+    expect(said).toContain("slows through July to December")
+    expect(said).toContain("stock bought just before that sits")
   })
 
   it("names a broad peak's slower run across the end of the year", () => {
     const said = describeSeason(analyseSeasonality(CRAYOLA), 10)
-    expect(said).toContain("slows through November to January")
+    expect(said).toContain("slows through November to February")
+    expect(said).toContain("stock bought just before that sits")
   })
 
   it("does not invent a slower run when the broad peak has none", () => {
