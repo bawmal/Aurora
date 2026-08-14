@@ -129,6 +129,33 @@ export function Analyser() {
       setAmazonOnListing(body.signals?.amazonOnListing === true)
       setAssumptions(body.assumptions ?? [])
       setLive(true)
+      try {
+        const key = "aurora-journey-v1"
+        const raw = window.localStorage.getItem(key)
+        const stored = raw ? (JSON.parse(raw) as { profile?: unknown; progress?: Record<string, unknown> }) : {}
+        const previous = stored.progress ?? {}
+        const completed = Array.isArray(previous.completedMilestones)
+          ? previous.completedMilestones.filter((value): value is string => typeof value === "string")
+          : []
+        const productsAnalysed =
+          typeof previous.productsAnalysed === "number" ? previous.productsAnalysed : 0
+        window.localStorage.setItem(
+          key,
+          JSON.stringify({
+            profile: stored.profile,
+            progress: {
+              completedMilestones: completed.includes("ra_first_analysis")
+                ? completed
+                : [...completed, "ra_first_analysis"],
+              skills: previous.skills ?? {},
+              productsAnalysed: productsAnalysed + 1,
+              unlockedTracks: previous.unlockedTracks ?? [],
+            },
+          }),
+        )
+      } catch {
+        // A corrupt browser value should never turn a successful analysis into an error.
+      }
     } catch {
       setLookupError("Could not reach the lookup service.")
       setTitle(null)

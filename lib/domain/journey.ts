@@ -1,5 +1,5 @@
 import { MILESTONES, TRACKS, milestonesFor, trackTemplate } from "./curriculum"
-import { dueRequirements } from "./jurisdictions"
+import { dueRequirements, REQUIREMENTS } from "./jurisdictions"
 import type {
   JourneyProgress,
   Marketplace,
@@ -11,6 +11,7 @@ import type {
   SkillLevel,
   TrackType,
   UnlockProgress,
+  SetupRequirement,
 } from "./types"
 
 /**
@@ -25,6 +26,19 @@ import type {
  */
 
 const MARKETPLACE_SUFFIX = "@"
+
+export type GateResolution =
+  | { kind: "milestone"; milestone: MilestoneTemplate }
+  | { kind: "requirement"; requirement: SetupRequirement }
+
+/** Resolve the two vocabularies used by `blockedBy` without making the UI know either table. */
+export function resolveGate(id: string): GateResolution | null {
+  const milestone = MILESTONES.find((candidate) => candidate.key === baseKey(id))
+  if (milestone) return { kind: "milestone", milestone }
+  const requirement = REQUIREMENTS.find((candidate) => candidate.id === id)
+  if (requirement) return { kind: "requirement", requirement }
+  return null
+}
 
 /** A marketplace milestone key is scoped per marketplace: `mk_account@amazon.com`. */
 export function instanceKey(key: string, marketplace: Marketplace | null): string {

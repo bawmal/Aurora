@@ -7,6 +7,7 @@ import {
   milestoneStates,
   nextMove,
   readiness,
+  resolveGate,
   unlockProgress,
 } from "../journey"
 import type { JourneyProgress, SellerProfile } from "../types"
@@ -127,6 +128,22 @@ describe("curriculum integrity", () => {
 })
 
 describe("milestone states", () => {
+  it("resolves dependency and compliance gates with their domain records", () => {
+    expect(resolveGate("ra_first_buy")).toEqual({
+      kind: "milestone",
+      milestone: expect.objectContaining({ key: "ra_first_buy" }),
+    })
+    expect(resolveGate("amz.tax-interview")).toEqual({
+      kind: "requirement",
+      requirement: expect.objectContaining({
+        id: "amz.tax-interview",
+        title: "Complete Amazon's tax interview",
+        professionalAdvice: false,
+      }),
+    })
+    expect(resolveGate("missing")).toBeNull()
+  })
+
   it("shows exactly one next move", () => {
     const states = milestoneStates(seller(), progress())
     expect(states.filter((s) => s.status === "next")).toHaveLength(1)
