@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
-import { KeepaClient, KeepaTokensExhausted, decodeBody } from "../client"
+import { KeepaAuthError, KeepaClient, KeepaTokensExhausted, decodeBody } from "../client"
 import { cacheKey, isFresh, ageInMinutes } from "../cache"
 import type { CacheEntry } from "../cache"
 import { BATCH_SIZE, KEEPA_DOMAIN } from "../types"
@@ -10,6 +10,11 @@ const DIR = join(process.cwd(), "tests/fixtures/keepa")
 
 function body(name: string): ArrayBuffer {
   const buf = readFileSync(join(DIR, name))
+  return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer
+}
+
+function json(value: unknown): ArrayBuffer {
+  const buf = Buffer.from(JSON.stringify(value))
   return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer
 }
 
@@ -37,10 +42,32 @@ describe("decoding", () => {
 
 describe("client", () => {
   it("never puts the api key in an error message", async () => {
-    const failing = (async () => ({ ok: false, status: 429 })) as unknown as typeof fetch
+    const failing = (async () => ({
+      ok: false,
+      status: 429,
+      arrayBuffer: async () => json({ error: { message: "too many requests" } }),
+    })) as unknown as typeof fetch
     const client = new KeepaClient({ apiKey: "secret-key", fetchImpl: failing })
-    await expect(client.products(["B071CP6X88"], 6)).rejects.toThrow(/429/)
+    await expect(client.products(["B071CP6X88"], 6)).rejects.toThrow(/too many requests/)
     await expect(client.products(["B071CP6X88"], 6)).rejects.not.toThrow(/secret-key/)
+  })
+
+  it("tells a rejected key apart from an empty account", async () => {
+    // The real 402 body carries tokensLeft: 0. Believing it makes every
+    // caller wait for a refill that is not coming.
+    const rejected = (async () => ({
+      ok: false,
+      status: 402,
+      arrayBuffer: async () =>
+        json({
+          error: { message: "Operation unauthorized. No active API plan found.", type: "unauthorized" },
+          tokensLeft: 0,
+        }),
+    })) as unknown as typeof fetch
+    const client = new KeepaClient({ apiKey: "bad", fetchImpl: rejected })
+    const failure = client.products(["B071CP6X88"], 6)
+    await expect(failure).rejects.toBeInstanceOf(KeepaAuthError)
+    await expect(failure).rejects.not.toBeInstanceOf(KeepaTokensExhausted)
   })
 
   it("batches at twenty asins per call", async () => {
@@ -70,6 +97,20 @@ describe("client", () => {
     expect(new URL(calls[2]).searchParams.get("offers")).toBe("20")
   })
 
+  it("asks for the buy box only on the tiers that pay for it", async () => {
+    const calls: string[] = []
+    const client = new KeepaClient({
+      apiKey: "k",
+      fetchImpl: respondWith("super-tips-t2.json", calls),
+    })
+    await client.products(["B071CP6X88"], 6, "basic")
+    await client.products(["B071CP6X88"], 6, "buybox")
+    await client.products(["B071CP6X88"], 6, "offers")
+    expect(new URL(calls[0]).searchParams.get("buybox")).toBeNull()
+    expect(new URL(calls[1]).searchParams.get("buybox")).toBe("1")
+    expect(new URL(calls[2]).searchParams.get("buybox")).toBe("1")
+  })
+
   it("stops spending below the token floor", async () => {
     const calls: string[] = []
     const client = new KeepaClient({
@@ -88,7 +129,7 @@ describe("client", () => {
     const empty = (async () => ({
       ok: true,
       status: 200,
-      arrayBuffer: async () => new TextEncoder().encode(JSON.stringify({ products: [], tokensLeft: 3 })).buffer,
+      arrayBuffer: async () => json({ products: [], tokensLeft: 3 }),
     })) as unknown as typeof fetch
     const client = new KeepaClient({ apiKey: "k", fetchImpl: empty })
     await expect(client.products(["B071CP6X88"], 6)).rejects.toBeInstanceOf(

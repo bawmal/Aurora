@@ -20,6 +20,8 @@ export interface KeepaClientOptions {
 export interface KeepaFetchResult {
   products: KeepaProduct[]
   tokensLeft: number | null
+  /** What this call actually cost, for the per-seller cost model. */
+  tokensConsumed: number
   /** True when the account is close enough to empty to stop spending. */
   lowTokens: boolean
 }
@@ -28,6 +30,18 @@ export class KeepaTokensExhausted extends Error {
   constructor(readonly tokensLeft: number) {
     super(`Keepa tokens exhausted (${tokensLeft} left); serve cache`)
     this.name = "KeepaTokensExhausted"
+  }
+}
+
+/**
+ * A rejected key answers 402 with `tokensLeft: 0`. Read that as exhaustion
+ * and every future session backs off from a full account, waiting for a
+ * refill that already happened.
+ */
+export class KeepaAuthError extends Error {
+  constructor(readonly detail: string) {
+    super(`Keepa rejected the API key: ${detail}`)
+    this.name = "KeepaAuthError"
   }
 }
 
@@ -45,8 +59,8 @@ export class KeepaClient {
   }
 
   /**
-   * One call for up to twenty ASINs. Anything longer is split, because
-   * twenty single requests cost far more than one request for twenty.
+   * One call for up to twenty ASINs. Tokens are billed per product, so this
+   * saves round trips and rate-limit headroom rather than money.
    */
   async products(
     asins: string[],
@@ -55,11 +69,13 @@ export class KeepaClient {
   ): Promise<KeepaFetchResult> {
     const products: KeepaProduct[] = []
     let tokensLeft: number | null = null
+    let tokensConsumed = 0
 
     for (const batch of chunk(asins, BATCH_SIZE)) {
       const response = await this.request(batch, domain, tier)
       products.push(...(response.products ?? []))
       tokensLeft = response.tokensLeft ?? tokensLeft
+      tokensConsumed += response.tokensConsumed ?? 0
       if (tokensLeft !== null && tokensLeft < TOKEN_FLOOR) {
         // Stop before the account is empty rather than after: the remaining
         // tokens are worth more as headroom for a seller mid-analysis.
@@ -71,6 +87,7 @@ export class KeepaClient {
     return {
       products,
       tokensLeft,
+      tokensConsumed,
       lowTokens: tokensLeft !== null && tokensLeft < TOKEN_FLOOR,
     }
   }
@@ -85,21 +102,31 @@ export class KeepaClient {
       domain: String(domain),
       asin: asins.join(","),
     })
-    if (tier === "history") {
-      params.set("history", "1")
-      params.set("stats", "90")
-    } else {
-      params.set("history", "0")
-      params.set("stats", "90")
-    }
+    params.set("stats", "90")
+    params.set("history", tier === "history" ? "1" : "0")
+    // The buy box costs two extra tokens and is absent without this, which is
+    // why the cheap tier prices off the lowest new offer instead.
+    if (tier === "buybox" || tier === "offers") params.set("buybox", "1")
     if (tier === "offers") params.set("offers", "20")
 
     const response = await this.fetchImpl(`${this.baseUrl}/product?${params}`)
-    if (!response.ok) {
-      // Never include the URL: it carries the key.
-      throw new Error(`Keepa request failed: ${response.status}`)
+    let body: KeepaResponse
+    try {
+      body = decodeBody(await response.arrayBuffer())
+    } catch {
+      // A gateway or proxy in front of Keepa answers HTML, not JSON.
+      throw new Error(`Keepa request failed: HTTP ${response.status}, unreadable body`)
     }
-    return decodeBody(await response.arrayBuffer())
+
+    if (!response.ok || body.error) {
+      // Never include the URL: it carries the key.
+      const detail = body.error?.message ?? `HTTP ${response.status}`
+      if (response.status === 402 || body.error?.type === "unauthorized") {
+        throw new KeepaAuthError(detail)
+      }
+      throw new Error(`Keepa request failed: ${detail}`)
+    }
+    return body
   }
 }
 

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
-import { KeepaClient, KeepaTokensExhausted } from "@/lib/keepa/client"
-import { KEEPA_DOMAIN } from "@/lib/keepa/types"
+import { KeepaAuthError, KeepaClient, KeepaTokensExhausted } from "@/lib/keepa/client"
+import { KEEPA_DOMAIN, TIER_TTL_MINUTES } from "@/lib/keepa/types"
 import type { KeepaTier } from "@/lib/keepa/types"
 import { toAnalysisInput } from "@/lib/analysis/from-keepa"
 import { MARKETPLACES } from "@/lib/domain/types"
@@ -20,7 +20,11 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams
   const asin = (params.get("asin") ?? "").trim().toUpperCase()
   const marketplace = params.get("marketplace") as Marketplace | null
-  const tier = (params.get("tier") ?? "basic") as KeepaTier
+  const requested = params.get("tier")
+  // History is the same one token as a bare lookup, so seasonality comes free
+  // with every analysis. The buy box is the tier worth paying up for.
+  const tier: KeepaTier =
+    requested && requested in TIER_TTL_MINUTES ? (requested as KeepaTier) : "history"
   const unitCost = Number.parseFloat(params.get("unitCost") ?? "0")
 
   if (!ASIN.test(asin)) {
@@ -44,7 +48,7 @@ export async function GET(request: Request) {
     // Overridable so the path can be exercised against a fixture server
     // without spending tokens on a live call.
     const client = new KeepaClient({ apiKey, baseUrl: process.env.KEEPA_BASE_URL })
-    const { products, lowTokens } = await client.products(
+    const { products, lowTokens, tokensLeft, tokensConsumed } = await client.products(
       [asin],
       KEEPA_DOMAIN[marketplace],
       tier,
@@ -67,8 +71,19 @@ export async function GET(request: Request) {
       title: product.title ?? null,
       ...result,
       lowTokens,
+      // Answers "what does a seller cost us per month" with measurements
+      // rather than the guess that pricing is currently resting on.
+      tokens: { consumed: tokensConsumed, left: tokensLeft, tier },
     })
   } catch (error) {
+    if (error instanceof KeepaAuthError) {
+      // A rejected key is ours to fix, not the seller's, and it must not read
+      // as "out of tokens" — that sends everyone waiting for a refill.
+      return NextResponse.json(
+        { error: "Keepa rejected our API key. Enter the numbers by hand for now." },
+        { status: 502 },
+      )
+    }
     if (error instanceof KeepaTokensExhausted) {
       return NextResponse.json(
         { error: "Keepa tokens are exhausted. Try again shortly." },

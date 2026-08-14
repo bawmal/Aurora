@@ -12,6 +12,7 @@ import { DEFAULT_WEIGHT_GRAMS } from "@/lib/keepa/types"
 import {
   amazonPresent,
   categoryName,
+  fbaOfferCount,
   hasUsableData,
   monthlyDemand,
   monthlyRankProfile,
@@ -108,6 +109,13 @@ export function toAnalysisInput(
   if (price.source === "buyBox90" || price.source === "new90") {
     assumptions.push("priced at the 90-day average, not today's buy box")
   }
+  if (price.buyBoxUnrequested) {
+    // The buy box is a paid extra. Saying "buy box" when we read the lowest
+    // new offer would overstate what we know about what the listing pays.
+    assumptions.push(
+      "priced off the lowest new offer; the buy box was not fetched, and Amazon presence is read from the Amazon price alone",
+    )
+  }
   if (price.stale) {
     assumptions.push("no live price on the listing; it may be dormant")
   }
@@ -132,7 +140,7 @@ export function toAnalysisInput(
     salesRank: salesRank(keepa),
     salesRank90dAvg: salesRank90dAvg(keepa),
     sellerCount: offerCount(keepa),
-    fbaSellerCount: null,
+    fbaSellerCount: fbaOfferCount(keepa),
     amazonOnListing: amazonPresent(keepa),
     seasonality,
   }

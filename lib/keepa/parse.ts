@@ -66,6 +66,16 @@ export function hasUsableData(product: KeepaProduct): boolean {
 }
 
 /**
+ * Keepa omits the buy-box stats entirely unless `buybox=1` was paid for, and
+ * signals that with -2 rather than the usual -1. Without this check a
+ * cheap lookup looks identical to a listing that has no buy box at all.
+ */
+export function buyBoxRequested(product: KeepaProduct): boolean {
+  const flag = product.stats?.buyBoxPrice
+  return flag !== undefined && flag !== null && flag !== -2
+}
+
+/**
  * Which price you analyse at is a product decision.
  *
  * `sourcing` prefers the 90-day average: you are buying stock that will sell
@@ -101,9 +111,13 @@ export function resolveSalePrice(
     money(stats.current, STAT.buyBoxPrice) === null &&
     money(stats.current, STAT.newPrice) === null
 
+  const buyBoxUnrequested = !buyBoxRequested(product)
+
   const hit = candidates.find((c) => c.value !== null)
-  if (!hit || hit.value === null) return { value: null, source: "none", stale: true }
-  return { value: hit.value, source: hit.source, stale }
+  if (!hit || hit.value === null) {
+    return { value: null, source: "none", stale: true, buyBoxUnrequested }
+  }
+  return { value: hit.value, source: hit.source, stale, buyBoxUnrequested }
 }
 
 /**
@@ -111,6 +125,10 @@ export function resolveSalePrice(
  * separate Amazon price entry, and equally often lists a price while a third
  * party holds the box. Checking one misses about half of real cases, and
  * Amazon on the listing is the commonest reason to reject a good product.
+ *
+ * `buyBoxIsAmazon` only exists on a buy-box or offers response, so below
+ * those tiers this is the Amazon price alone and a false is "no Amazon
+ * offer", not "Amazon does not hold the box". Callers say which they got.
  */
 export function amazonPresent(product: KeepaProduct): boolean {
   const stats = product.stats ?? {}
@@ -134,6 +152,13 @@ export function offerCount(product: KeepaProduct): number | null {
   return value(product.stats?.current, STAT.newOfferCount)
 }
 
+/** Only populated on an offers-tier response. Null means it was not asked for. */
+export function fbaOfferCount(product: KeepaProduct): number | null {
+  const count = product.stats?.offerCountFBA
+  if (count === null || count === undefined) return null
+  return count < 0 ? null : count
+}
+
 /**
  * A rank drop is a sale event: rank improves sharply when a unit sells, so
  * counting drops approximates unit velocity. It understates high-volume items
@@ -152,10 +177,14 @@ export function monthlyDemand(product: KeepaProduct): number | null {
  * exists.
  */
 export function priceSpikeRisk(product: KeepaProduct): boolean {
-  const now = money(product.stats?.current, STAT.buyBoxPrice)
-  const avg = money(product.stats?.avg90, STAT.buyBoxPrice)
-  if (now === null || avg === null || avg <= 0) return false
-  return now > avg * 1.25
+  // Comparing buy box to buy box would be ideal, but a lookup that did not
+  // pay for the buy box has neither, and silently returning false there
+  // suppresses the warning on exactly the cheap path most analyses take.
+  const pair = buyBoxRequested(product)
+    ? { now: money(product.stats?.current, STAT.buyBoxPrice), avg: money(product.stats?.avg90, STAT.buyBoxPrice) }
+    : { now: money(product.stats?.current, STAT.newPrice), avg: money(product.stats?.avg90, STAT.newPrice) }
+  if (pair.now === null || pair.avg === null || pair.avg <= 0) return false
+  return pair.now > pair.avg * 1.25
 }
 
 export function categoryName(product: KeepaProduct): string | null {
