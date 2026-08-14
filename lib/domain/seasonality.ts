@@ -18,6 +18,8 @@ export interface SeasonalProfile {
    * months are neither, and a product can have a peak and no dead season.
    */
   quietMonths: number[]
+  /** Broad-peak months that are materially slower than the peak, but not dead. */
+  slowerMonths: number[]
   /**
    * Mean rank in the run-up divided by the best month's rank. Higher means a
    * bigger surge is coming. Null when the best month is the first with data,
@@ -51,6 +53,7 @@ export function analyseSeasonality(monthlyRank: (number | null)[]): SeasonalProf
     return {
       peakMonths: [],
       quietMonths: [],
+      slowerMonths: [],
       surgeMultiple: null,
       seasonRatio: null,
       classification: "unknown",
@@ -79,11 +82,24 @@ export function analyseSeasonality(monthlyRank: (number | null)[]): SeasonalProf
     .map((m) => m.month)
     .sort((a, b) => a - b)
 
+  const bestPeakRank = Math.min(...known.filter((m) => peakMonths.includes(m.month)).map((m) => m.rank))
+  const slowerMonths = known
+    .filter(
+      (m) =>
+        peakMonths.length >= 5 &&
+        !peakMonths.includes(m.month) &&
+        m.rank >= bestPeakRank * 2 &&
+        m.rank < annualMean * 1.6,
+    )
+    .map((m) => m.month)
+    .sort((a, b) => a - b)
+
   const surgeMultiple = computeSurge(known)
 
   return {
     peakMonths,
     quietMonths,
+    slowerMonths,
     surgeMultiple,
     seasonRatio,
     classification: classify(seasonRatio, surgeMultiple, peakMonths.length),
@@ -200,7 +216,16 @@ export function describeSeason(
   // A peak covering half the year is not a peak, it is a product that sells
   // fine except for a dead patch. Naming six months as "hardest" reads as
   // noise; naming the dead patch is the thing that changes a buy.
-  if (profile.peakMonths.length >= 6) {
+  if (profile.peakMonths.length >= 5) {
+    if (
+      profile.quietMonths.length > 0 &&
+      hasConsecutiveRun(profile.quietMonths, 2)
+    ) {
+      return `Sells well most of the year, and goes quiet in ${listMonths(profile.quietMonths)}. Stock bought just before that sits.`
+    }
+    if (profile.slowerMonths.length > 0) {
+      return `Sells well most of the year, and slows through ${listMonths(profile.slowerMonths)}.`
+    }
     return profile.quietMonths.length > 0
       ? `Sells well most of the year, and goes quiet in ${listMonths(profile.quietMonths)}. Stock bought just before that sits.`
       : "Sells at much the same rate all year, so timing is not the risk here."
@@ -228,6 +253,19 @@ export function describeSeason(
   return `Sells hardest in ${when}.${strength} ${timing}`
 }
 
+function hasConsecutiveRun(months: number[], minimum: number): boolean {
+  let run = 1
+  for (let index = 1; index < months.length; index++) {
+    if (months[index] === months[index - 1] + 1) {
+      run++
+      if (run >= minimum) return true
+    } else {
+      run = 1
+    }
+  }
+  return months.length > 1 && months[0] === 1 && months[months.length - 1] === 12
+}
+
 /** Consecutive months read as a window: "September to December", not a list. */
 function listMonths(months: number[]): string {
   const runs: number[][] = []
@@ -235,6 +273,10 @@ function listMonths(months: number[]): string {
     const last = runs[runs.length - 1]
     if (last && month === last[last.length - 1] + 1) last.push(month)
     else runs.push([month])
+  }
+  if (runs.length > 1 && runs[0][0] === 1 && runs[runs.length - 1].at(-1) === 12) {
+    runs[0] = [...runs[runs.length - 1], ...runs[0]]
+    runs.pop()
   }
   const names = runs.map((run) =>
     run.length >= 3

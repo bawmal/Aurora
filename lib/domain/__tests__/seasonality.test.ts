@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest"
-import { analyseSeasonality, barHeights, demandSparkline, describeSeason } from "../seasonality"
+import {
+  analyseSeasonality,
+  barHeights,
+  demandSparkline,
+  describeSeason,
+} from "../seasonality"
+import type { SeasonalProfile } from "../seasonality"
 
 /**
  * Reference profiles are real amazon.ca monthly rank averages for 2025.
@@ -10,6 +16,7 @@ const JANUARY_PEAK = [58, 75, 94, 138, 101, 181, 1856, 2398, 1433, 3484, 7354, 7
 /** A narrow new-year peak, for the wrap-around case. */
 const NEW_YEAR = [300, 350, 4000, 5000, 6000, 6000, 5500, 5000, 4800, 5200, 4000, 3000]
 const PARTIAL = [null, null, null, null, null, null, null, 60127, 1761, 2657, 2907, 3920]
+const CRAYOLA = [1204, 3157, 328, 419, 327, 311, 635, 497, 363, 557, 1327, 1399]
 
 describe("seasonality", () => {
   it("finds the peak from the data, not from the category", () => {
@@ -71,6 +78,24 @@ describe("describeSeason", () => {
     // which months the product dies in.
     const said = describeSeason(analyseSeasonality(JANUARY_PEAK), 6)
     expect(said).toContain("goes quiet in October to December")
+  })
+
+  it("names a broad peak's slower run across the end of the year", () => {
+    const said = describeSeason(analyseSeasonality(CRAYOLA), 10)
+    expect(said).toContain("slows through November to January")
+  })
+
+  it("does not invent a slower run when the broad peak has none", () => {
+    const profile: SeasonalProfile = {
+      peakMonths: [1, 2, 3, 4, 5, 6],
+      quietMonths: [],
+      slowerMonths: [],
+      surgeMultiple: null,
+      seasonRatio: 0.5,
+      classification: "seasonal",
+    }
+    expect(describeSeason(profile, 6)).toContain("timing is not the risk")
+    expect(describeSeason(profile, 6)).not.toContain("slows")
   })
 
   it("reads a run of months as a window rather than a list", () => {

@@ -104,6 +104,20 @@ export function Analyser() {
 
   const currency = MARKETPLACE_CURRENCY[marketplace]
 
+  const clearLookupResult = useCallback(() => {
+    setTitle(null)
+    setSeason(null)
+    setHistoryDays(0)
+    setSalePrice("39.99")
+    setCategory("toys-games")
+    setWeightTier("standard")
+    setSalesRank("")
+    setSellerCount("")
+    setAmazonOnListing(false)
+    setAssumptions([])
+    setLive(false)
+  }, [])
+
   // Everything Keepa knows is filled in; the seller supplies the one number
   // it cannot know, which is what they are actually paying.
   const lookup = useCallback(async () => {
@@ -116,8 +130,7 @@ export function Analyser() {
       if (!response.ok || !body.product) {
         // Clear the last product: a title left sitting above an error reads
         // as though the error belongs to the product still on screen.
-        setTitle(null)
-        setSeason(null)
+        clearLookupResult()
         setLookupError(body.error ?? "Lookup failed.")
         return
       }
@@ -135,12 +148,12 @@ export function Analyser() {
       recordAnalysisInStorage(asin)
       analysisRecorded.current = true
     } catch {
+      clearLookupResult()
       setLookupError("Could not reach the lookup service.")
-      setTitle(null)
     } finally {
       setLooking(false)
     }
-  }, [asin, marketplace])
+  }, [asin, clearLookupResult, marketplace])
 
   const result = useMemo(() => {
     const product: ProductInput = {
