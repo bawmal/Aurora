@@ -147,6 +147,73 @@ export function barHeights(monthlyRank: (number | null)[], maxPx = 34): number[]
   )
 }
 
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+]
+
+/**
+ * The sentence a seller actually acts on.
+ *
+ * Twelve bars on their own are decoration: they earn their space in a sorted
+ * table, where the insight is one product against another, and lose it beside
+ * a single product. What survives the loss of comparison is *when* and *how
+ * far away*, so that is what this says.
+ *
+ * `monthNow` is 1-indexed, and the distance to peak wraps the year: in
+ * November, a September peak is ten months out, not two months past.
+ */
+export function describeSeason(
+  profile: SeasonalProfile,
+  monthNow: number,
+): string | null {
+  if (profile.classification === "unknown") return null
+
+  if (profile.peakMonths.length === 0) {
+    return profile.classification === "evergreen"
+      ? "Sells at much the same rate all year, so timing is not the risk here."
+      : null
+  }
+
+  const when = listMonths(profile.peakMonths)
+  const away = Math.min(...profile.peakMonths.map((m) => (m - monthNow + 12) % 12))
+
+  const timing =
+    away === 0
+      ? "That is this month."
+      : away === 1
+        ? "That is next month."
+        : away <= 4
+          ? `That is ${away} months out — buying now is buying into it.`
+          : // Far enough that capital is tied up through the quiet stretch,
+            // which is the part a rank-today view never shows.
+            `That is ${away} months out, so stock bought now sits through the quiet months.`
+
+  const strength =
+    profile.seasonRatio !== null && profile.seasonRatio <= SEASONAL_RATIO
+      ? ` It sells roughly ${Math.round(1 / profile.seasonRatio)}× harder then than its yearly average.`
+      : ""
+
+  return `Sells hardest in ${when}.${strength} ${timing}`
+}
+
+function listMonths(months: number[]): string {
+  const names = months.map((m) => MONTH_NAMES[m - 1])
+  if (names.length === 1) return names[0]
+  if (names.length === 2) return `${names[0]} and ${names[1]}`
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`
+}
+
 function round1(n: number): number {
   return Math.round(n * 10) / 10
 }

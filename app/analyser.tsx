@@ -13,6 +13,8 @@ import type {
   WeightTier,
 } from "@/lib/domain/types"
 import { DEFAULT_CRITERIA, MARKETPLACE_CURRENCY } from "@/lib/domain/types"
+import { barHeights, describeSeason } from "@/lib/domain/seasonality"
+import type { SeasonalProfile } from "@/lib/domain/seasonality"
 
 /**
  * The whole domain is pure, so this runs entirely in the browser with no
@@ -43,12 +45,20 @@ const STATE_TINT: Record<SignalState, string> = {
 
 const WEIGHT_TIERS: WeightTier[] = ["envelope", "small", "standard", "large", "oversize"]
 
+interface Season {
+  year: number
+  monthlyRank: (number | null)[]
+  profile: SeasonalProfile
+}
+
 interface LookupResponse {
   error?: string
   title?: string | null
   product?: ProductInput
   signals?: MarketSignals
+  quality?: DataQuality
   assumptions?: string[]
+  season?: Season | null
 }
 
 const CATEGORIES = [
@@ -81,6 +91,9 @@ export function Analyser() {
   const [asin, setAsin] = useState("")
   const [title, setTitle] = useState<string | null>(null)
   const [assumptions, setAssumptions] = useState<string[]>([])
+  const [season, setSeason] = useState<Season | null>(null)
+  /** How much rank history the read actually covered, not how much we hoped for. */
+  const [historyDays, setHistoryDays] = useState(0)
   const [lookupError, setLookupError] = useState<string | null>(null)
   const [looking, setLooking] = useState(false)
   /** Typed numbers and read numbers are worth different amounts of confidence. */
@@ -98,10 +111,16 @@ export function Analyser() {
       const response = await fetch(`/api/product?${params}`)
       const body = (await response.json()) as LookupResponse
       if (!response.ok || !body.product) {
+        // Clear the last product: a title left sitting above an error reads
+        // as though the error belongs to the product still on screen.
+        setTitle(null)
+        setSeason(null)
         setLookupError(body.error ?? "Lookup failed.")
         return
       }
       setTitle(body.title ?? null)
+      setSeason(body.season ?? null)
+      setHistoryDays(body.quality?.historyDays ?? 0)
       setSalePrice(body.product.salePrice.toFixed(2))
       setCategory(body.product.category)
       setWeightTier(body.product.weightTier)
@@ -112,6 +131,7 @@ export function Analyser() {
       setLive(true)
     } catch {
       setLookupError("Could not reach the lookup service.")
+      setTitle(null)
     } finally {
       setLooking(false)
     }
@@ -150,7 +170,7 @@ export function Analyser() {
       sellerCount: optional(sellerCount),
       fbaSellerCount: null,
       amazonOnListing,
-      seasonality: "unknown",
+      seasonality: season?.profile.classification ?? "unknown",
     }
     // Confidence is honest about how much of this rests on typed numbers
     // rather than read ones, and rises on its own as fields are filled live.
@@ -160,13 +180,15 @@ export function Analyser() {
       sellerEnteredCost: num(unitCost) > 0,
       landedCostsEntered: num(prep) > 0 || num(inbound) > 0,
       knownCategory: true,
-      historyDays: 0,
+      historyDays,
       signalAgeDays: 0,
     }
     return review(product, profile, { ...DEFAULT_CRITERIA, minRoi: num(minRoi) / 100 }, signals, quality)
   }, [
     asin,
     live,
+    season,
+    historyDays,
     marketplace,
     category,
     weightTier,
@@ -192,7 +214,7 @@ export function Analyser() {
           <span className="flex gap-2">
             <input
               value={asin}
-              onChange={(e) => setAsin(e.target.value.toUpperCase())}
+              onChange={(e) => setAsin(e.target.value.trim().toUpperCase())}
               placeholder="B071CP6X88"
               className="data flex-1 rounded-md border bg-transparent px-3 py-2"
               style={{ borderColor: "var(--hairline)" }}
@@ -301,6 +323,8 @@ export function Analyser() {
           ))}
         </ul>
 
+        {season && <SeasonCard season={season} />}
+
         <Card>
           <Overline>Buy below</Overline>
           <p className="data text-3xl font-semibold">
@@ -358,6 +382,97 @@ export function Analyser() {
         )}
       </section>
     </div>
+  )
+}
+
+const MONTH_INITIALS = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"]
+const BAR_MAX_PX = 34
+
+/**
+ * Twelve months of demand, and the sentence that makes them mean something.
+ *
+ * A sorted table of these is the scouting view, where the insight is one
+ * product against another. Beside a single product that comparison is gone,
+ * so the sentence leads and the bars are the evidence you can glance at.
+ */
+function SeasonCard({ season }: { season: Season }) {
+  const heights = barHeights(season.monthlyRank, BAR_MAX_PX)
+  // Where the seller is standing now, which is what makes "9 months out" a
+  // decision rather than a fact.
+  const sentence = describeSeason(season.profile, new Date().getUTCMonth() + 1)
+  const { peakMonths, surgeMultiple, seasonRatio, classification } = season.profile
+
+  return (
+    <Card>
+      <div className="flex items-baseline justify-between gap-3">
+        <Overline>Demand by month, {season.year}</Overline>
+        <span className="data text-xs" style={{ color: "var(--text-faint)" }}>
+          {classification}
+        </span>
+      </div>
+
+      <div
+        className="mt-3 flex items-end gap-[3px]"
+        style={{ height: BAR_MAX_PX }}
+        role="img"
+        aria-label={sentence ?? `Monthly demand for ${season.year} is too sparse to read.`}
+      >
+        {heights.map((height, index) => {
+          const peak = peakMonths.includes(index + 1)
+          const missing = season.monthlyRank[index] === null
+          return (
+            <span
+              key={index}
+              className="flex-1 rounded-t-sm"
+              style={
+                missing
+                  ? // An absent month is not a zero-demand month, and a flat
+                    // grey bar would claim it was.
+                    { height: 6, border: "1px dashed var(--hairline)", background: "transparent" }
+                  : { height, background: peak ? "var(--buy)" : "var(--surface-sunken)" }
+              }
+            />
+          )
+        })}
+      </div>
+
+      <div
+        className="data mt-1 flex gap-[3px] text-[10px]"
+        style={{ color: "var(--text-faint)" }}
+        aria-hidden
+      >
+        {MONTH_INITIALS.map((initial, index) => (
+          <span key={index} className="flex-1 text-center">
+            {initial}
+          </span>
+        ))}
+      </div>
+
+      {sentence && <p className="mt-3 text-sm">{sentence}</p>}
+
+      <details className="mt-2">
+        <summary className="cursor-pointer text-xs" style={{ color: "var(--text-muted)" }}>
+          How this is read
+        </summary>
+        <p className="mt-2 text-xs" style={{ color: "var(--text-muted)" }}>
+          Bars are demand, not rank: a lower sales rank means more sold, so plotting rank directly
+          would draw the best month as the shortest bar. Each product is scaled against its own
+          best month, because rank 500 in Toys and rank 500 in Electronics are different volumes.
+          Green marks the months well above this product&rsquo;s own yearly average; a dashed
+          outline is a month Keepa has no data for, which is not the same as a month with no sales.
+          {seasonRatio !== null && (
+            <>
+              {" "}
+              Season ratio {seasonRatio.toFixed(2)} is the best three months against the year&rsquo;s
+              average — near 1 means it sells the same all year.
+            </>
+          )}
+          {surgeMultiple !== null && (
+            <> Surge ×{surgeMultiple.toFixed(1)} compares the run-up to the best month.</>
+          )}
+        </p>
+      </details>
+    </Card>
   )
 }
 

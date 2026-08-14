@@ -56,10 +56,16 @@ describe("keepa to analysis input", () => {
     const withoutHistory = toAnalysisInput(fixture("amazon-by-price.json"), "amazon.ca", 0)
     if (!withHistory.ok || !withoutHistory.ok) throw new Error("expected usable products")
     expect(withHistory.signals.seasonality).not.toBe("unknown")
-    expect(withHistory.quality.historyDays).toBe(365)
+    // Credit for the months actually covered, not a flat year for any history
+    // at all: a three-month read should not claim a season.
+    expect(withHistory.quality.historyDays).toBeGreaterThan(0)
+    expect(withHistory.quality.historyDays).toBeLessThanOrEqual(360)
+    expect(withHistory.season?.monthlyRank).toHaveLength(12)
+    expect(withHistory.season?.year).toBe(2025)
     // No history requested means unknown, never an assumed evergreen.
     expect(withoutHistory.signals.seasonality).toBe("unknown")
     expect(withoutHistory.quality.historyDays).toBe(0)
+    expect(withoutHistory.season).toBeNull()
   })
 
   it("surfaces a guessed weight instead of silently pricing on it", () => {

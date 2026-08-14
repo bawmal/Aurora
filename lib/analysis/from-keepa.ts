@@ -6,6 +6,7 @@ import type {
   WeightTier,
 } from "@/lib/domain/types"
 import { analyseSeasonality } from "@/lib/domain/seasonality"
+import type { SeasonalProfile } from "@/lib/domain/seasonality"
 import { isKnownCategory } from "@/lib/domain/fees"
 import type { KeepaProduct, PriceIntent } from "@/lib/keepa/types"
 import { DEFAULT_WEIGHT_GRAMS } from "@/lib/keepa/types"
@@ -41,6 +42,11 @@ export interface KeepaAnalysisInput {
   assumptions: string[]
   demandPerMonth: number | null
   priceSpike: boolean
+  /**
+   * Twelve monthly average ranks and what they mean. History costs the same
+   * one token as a bare lookup, so withholding this saves nothing.
+   */
+  season: { year: number; monthlyRank: (number | null)[]; profile: SeasonalProfile } | null
 }
 
 export type KeepaAnalysisFailure = { reason: "not-found" | "no-price" }
@@ -120,12 +126,13 @@ export function toAnalysisInput(
     assumptions.push("no live price on the listing; it may be dormant")
   }
 
-  const hasHistory = Array.isArray(keepa.csv) && keepa.csv.length > 0
-  const seasonality = hasHistory
-    ? analyseSeasonality(
-        monthlyRankProfile(keepa, options.historyYear ?? new Date().getUTCFullYear() - 1),
-      ).classification
-    : ("unknown" as const)
+  // The most recent complete year: the current one is a partial shape, and a
+  // half-drawn season reads as a product that dies every August.
+  const year = options.historyYear ?? new Date().getUTCFullYear() - 1
+  const monthlyRank = monthlyRankProfile(keepa, year)
+  const hasHistory = monthlyRank.some((month) => month !== null)
+  const profile = hasHistory ? analyseSeasonality(monthlyRank) : null
+  const seasonality = profile?.classification ?? ("unknown" as const)
 
   const product: ProductInput = {
     asin: keepa.asin,
@@ -152,7 +159,7 @@ export function toAnalysisInput(
     sellerEnteredCost: unitCost > 0,
     landedCostsEntered: false,
     knownCategory: isKnownCategory(category),
-    historyDays: hasHistory ? 365 : 0,
+    historyDays: monthlyRank.filter((month) => month !== null).length * 30,
     signalAgeDays: options.signalAgeDays ?? 0,
   }
 
@@ -164,5 +171,6 @@ export function toAnalysisInput(
     assumptions,
     demandPerMonth: monthlyDemand(keepa),
     priceSpike: priceSpikeRisk(keepa),
+    season: profile ? { year, monthlyRank, profile } : null,
   }
 }

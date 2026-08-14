@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { analyseSeasonality, barHeights, demandSparkline } from "../seasonality"
+import { analyseSeasonality, barHeights, demandSparkline, describeSeason } from "../seasonality"
 
 /**
  * Reference profiles are real amazon.ca monthly rank averages for 2025.
@@ -46,6 +46,33 @@ describe("seasonality", () => {
     const partial = analyseSeasonality(PARTIAL)
     expect(partial.peakMonths).toEqual([9, 10, 11, 12])
     expect(partial.classification).not.toBe("unknown")
+  })
+})
+
+describe("describeSeason", () => {
+  it("says when the peak is and how far away it is from where the seller stands", () => {
+    const autumn = analyseSeasonality(BACK_TO_SCHOOL)
+    // Standing in June, the September peak is three months out and buying now
+    // is buying into it. Standing inside the window, it is already here.
+    expect(describeSeason(autumn, 6)).toContain("September")
+    expect(describeSeason(autumn, 6)).toContain("3 months out")
+    expect(describeSeason(autumn, 11)).toContain("this month")
+  })
+
+  it("wraps the year rather than reporting a peak as past", () => {
+    const january = analyseSeasonality(JANUARY_PEAK)
+    const said = describeSeason(january, 12)
+    expect(said).toContain("next month")
+  })
+
+  it("tells an evergreen seller that timing is not the risk", () => {
+    const said = describeSeason(analyseSeasonality(STEADY), 6)
+    expect(said).toContain("all year")
+  })
+
+  it("says nothing at all when the history cannot support a claim", () => {
+    const thin = analyseSeasonality([null, null, 4000, null, null, null, null, null, null, null, null, null])
+    expect(describeSeason(thin, 6)).toBeNull()
   })
 })
 
