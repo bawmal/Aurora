@@ -1,7 +1,8 @@
 "use client"
 
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { review } from "@/lib/domain/review"
+import { recordAnalysisInStorage } from "./journey/storage"
 import type {
   DataQuality,
   MarketSignals,
@@ -98,6 +99,8 @@ export function Analyser() {
   const [looking, setLooking] = useState(false)
   /** Typed numbers and read numbers are worth different amounts of confidence. */
   const [live, setLive] = useState(false)
+  const [unitCostEdited, setUnitCostEdited] = useState(false)
+  const analysisRecorded = useRef(false)
 
   const currency = MARKETPLACE_CURRENCY[marketplace]
 
@@ -129,33 +132,8 @@ export function Analyser() {
       setAmazonOnListing(body.signals?.amazonOnListing === true)
       setAssumptions(body.assumptions ?? [])
       setLive(true)
-      try {
-        const key = "aurora-journey-v1"
-        const raw = window.localStorage.getItem(key)
-        const stored = raw ? (JSON.parse(raw) as { profile?: unknown; progress?: Record<string, unknown> }) : {}
-        const previous = stored.progress ?? {}
-        const completed = Array.isArray(previous.completedMilestones)
-          ? previous.completedMilestones.filter((value): value is string => typeof value === "string")
-          : []
-        const productsAnalysed =
-          typeof previous.productsAnalysed === "number" ? previous.productsAnalysed : 0
-        window.localStorage.setItem(
-          key,
-          JSON.stringify({
-            profile: stored.profile,
-            progress: {
-              completedMilestones: completed.includes("ra_first_analysis")
-                ? completed
-                : [...completed, "ra_first_analysis"],
-              skills: previous.skills ?? {},
-              productsAnalysed: productsAnalysed + 1,
-              unlockedTracks: previous.unlockedTracks ?? [],
-            },
-          }),
-        )
-      } catch {
-        // A corrupt browser value should never turn a successful analysis into an error.
-      }
+      recordAnalysisInStorage(asin)
+      analysisRecorded.current = true
     } catch {
       setLookupError("Could not reach the lookup service.")
       setTitle(null)
@@ -233,6 +211,19 @@ export function Analyser() {
 
   const analysis = result.analysis
 
+  useEffect(() => {
+    if (
+      analysisRecorded.current ||
+      !unitCostEdited ||
+      num(salePrice) <= 0 ||
+      num(unitCost) <= 0
+    ) {
+      return
+    }
+    recordAnalysisInStorage(asin)
+    analysisRecorded.current = true
+  }, [analysis, asin, salePrice, unitCost, unitCostEdited])
+
   return (
     <div className="grid gap-8 md:grid-cols-[1fr_1.1fr]">
       <form className="grid gap-4" onSubmit={(e) => e.preventDefault()}>
@@ -287,7 +278,14 @@ export function Analyser() {
           ))}
         </Select>
         <Field label={`Sale price (${currency})`} value={salePrice} onChange={setSalePrice} />
-        <Field label={`Your cost per unit (${currency})`} value={unitCost} onChange={setUnitCost} />
+        <Field
+          label={`Your cost per unit (${currency})`}
+          value={unitCost}
+          onChange={(value) => {
+            setUnitCost(value)
+            setUnitCostEdited(true)
+          }}
+        />
         <Field label="Minimum ROI (%)" value={minRoi} onChange={setMinRoi} />
 
         <Fieldset

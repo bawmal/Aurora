@@ -313,6 +313,9 @@ export interface JourneyProgress {
   /** Completed milestone keys. Marketplace instances are suffixed, e.g. "mk_account@amazon.com". */
   completedMilestones: string[]
   skills: Partial<Record<SkillKey, SkillLevel>>
+  /** Distinct ASINs the seller has actually analysed. */
+  analysedAsins: string[]
+  /** Derived convenience counter; storage persists `analysedAsins`, not this value. */
   productsAnalysed: number
   unlockedTracks: TrackType[]
 }
@@ -320,6 +323,7 @@ export interface JourneyProgress {
 export const NO_PROGRESS: JourneyProgress = {
   completedMilestones: [],
   skills: {},
+  analysedAsins: [],
   productsAnalysed: 0,
   unlockedTracks: [],
 }

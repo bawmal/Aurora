@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest"
 import { ACHIEVEMENTS, MILESTONES, SKILLS, TRACKS, milestonesFor } from "../curriculum"
 import {
   baseKey,
+  completeMilestone,
   instanceKey,
   isTrackOpen,
   milestoneStates,
   nextMove,
   readiness,
+  recordAnalysis,
   resolveGate,
   unlockProgress,
 } from "../journey"
@@ -128,6 +130,35 @@ describe("curriculum integrity", () => {
 })
 
 describe("milestone states", () => {
+  it("raises a milestone's coached skill once and caps it at five", () => {
+    const first = completeMilestone(progress(), "ra_first_analysis")
+    expect(first.skills["product-analysis"]).toBe(1)
+    expect(completeMilestone(first, "ra_first_analysis")).toBe(first)
+
+    const capped = completeMilestone(
+      progress({ skills: { "product-analysis": 5 } }),
+      "ra_first_analysis",
+    )
+    expect(capped.skills["product-analysis"]).toBe(5)
+  })
+
+  it("records distinct analyses and completes the first-analysis outcome", () => {
+    const first = recordAnalysis(progress(), "b071cp6x88")
+    expect(first.analysedAsins).toEqual(["B071CP6X88"])
+    expect(first.productsAnalysed).toBe(1)
+    expect(first.completedMilestones).toContain("ra_first_analysis")
+    expect(first.skills["product-analysis"]).toBe(1)
+
+    const repeated = recordAnalysis(first, "B071CP6X88")
+    expect(repeated.analysedAsins).toEqual(["B071CP6X88"])
+    expect(repeated.productsAnalysed).toBe(1)
+
+    const manual = recordAnalysis(progress(), "")
+    expect(manual.completedMilestones).toContain("ra_first_analysis")
+    expect(manual.analysedAsins).toEqual([])
+    expect(manual.productsAnalysed).toBe(0)
+  })
+
   it("resolves dependency and compliance gates with their domain records", () => {
     expect(resolveGate("ra_first_buy")).toEqual({
       kind: "milestone",

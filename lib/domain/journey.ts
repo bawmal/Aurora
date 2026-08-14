@@ -148,6 +148,50 @@ export function nextMove(
   return milestoneStates(profile, progress).find((s) => s.status === "next") ?? null
 }
 
+/**
+ * Completing an outcome may coach one skill forward. The same outcome can be
+ * observed more than once, so repeat events must not manufacture progress.
+ */
+export function completeMilestone(
+  progress: JourneyProgress,
+  completedKey: string,
+): JourneyProgress {
+  if (progress.completedMilestones.includes(completedKey)) return progress
+
+  const milestone = MILESTONES.find(
+    (candidate) => candidate.key === baseKey(completedKey),
+  )
+  const skills = { ...progress.skills }
+  if (milestone?.buildsSkill) {
+    const current = skills[milestone.buildsSkill] ?? 0
+    skills[milestone.buildsSkill] = Math.min(5, current + 1) as SkillLevel
+  }
+
+  return {
+    ...progress,
+    completedMilestones: [...progress.completedMilestones, completedKey],
+    skills,
+  }
+}
+
+/** Record a real analysis without counting repeated reads of the same ASIN. */
+export function recordAnalysis(
+  progress: JourneyProgress,
+  asin: string,
+): JourneyProgress {
+  const normalized = asin.trim().toUpperCase()
+  if (!normalized || progress.analysedAsins.includes(normalized)) {
+    return completeMilestone(progress, "ra_first_analysis")
+  }
+
+  const analysedAsins = [...progress.analysedAsins, normalized]
+  return {
+    ...completeMilestone(progress, "ra_first_analysis"),
+    analysedAsins,
+    productsAnalysed: analysedAsins.length,
+  }
+}
+
 export function isTrackOpen(
   track: TrackType,
   profile: SellerProfile,
