@@ -400,7 +400,7 @@ function SeasonCard({ season }: { season: Season }) {
   // Where the seller is standing now, which is what makes "9 months out" a
   // decision rather than a fact.
   const sentence = describeSeason(season.profile, new Date().getUTCMonth() + 1)
-  const { peakMonths, surgeMultiple, seasonRatio, classification } = season.profile
+  const { peakMonths, quietMonths, surgeMultiple, seasonRatio, classification } = season.profile
 
   return (
     <Card>
@@ -419,6 +419,7 @@ function SeasonCard({ season }: { season: Season }) {
       >
         {heights.map((height, index) => {
           const peak = peakMonths.includes(index + 1)
+          const quiet = quietMonths.includes(index + 1)
           const missing = season.monthlyRank[index] === null
           return (
             <span
@@ -429,7 +430,14 @@ function SeasonCard({ season }: { season: Season }) {
                   ? // An absent month is not a zero-demand month, and a flat
                     // grey bar would claim it was.
                     { height: 6, border: "1px dashed var(--hairline)", background: "transparent" }
-                  : { height, background: peak ? "var(--buy)" : "var(--surface-sunken)" }
+                  : {
+                      height,
+                      background: peak
+                        ? "var(--buy)"
+                        : quiet
+                          ? "var(--pass-tint)"
+                          : "var(--surface-sunken)",
+                    }
               }
             />
           )
@@ -459,7 +467,8 @@ function SeasonCard({ season }: { season: Season }) {
           would draw the best month as the shortest bar. Each product is scaled against its own
           best month, because rank 500 in Toys and rank 500 in Electronics are different volumes.
           Green marks the months well above this product&rsquo;s own yearly average; a dashed
-          outline is a month Keepa has no data for, which is not the same as a month with no sales.
+          outline is a month Keepa has no data for, which is not the same as a month with no sales;
+          the palest bars are its dead months.
           {seasonRatio !== null && (
             <>
               {" "}

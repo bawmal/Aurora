@@ -7,6 +7,8 @@ import { analyseSeasonality, barHeights, demandSparkline, describeSeason } from 
 const BACK_TO_SCHOOL = [26848, 12967, 27833, 42416, 31999, 33971, 37456, 12218, 1807, 2643, 2975, 3914]
 const STEADY = [6169, 4702, 6591, 3594, 3769, 3770, 3222, 3132, 4501, 6660, 6200, 5529]
 const JANUARY_PEAK = [58, 75, 94, 138, 101, 181, 1856, 2398, 1433, 3484, 7354, 7891]
+/** A narrow new-year peak, for the wrap-around case. */
+const NEW_YEAR = [300, 350, 4000, 5000, 6000, 6000, 5500, 5000, 4800, 5200, 4000, 3000]
 const PARTIAL = [null, null, null, null, null, null, null, 60127, 1761, 2657, 2907, 3920]
 
 describe("seasonality", () => {
@@ -60,9 +62,20 @@ describe("describeSeason", () => {
   })
 
   it("wraps the year rather than reporting a peak as past", () => {
-    const january = analyseSeasonality(JANUARY_PEAK)
-    const said = describeSeason(january, 12)
+    const said = describeSeason(analyseSeasonality(NEW_YEAR), 12)
     expect(said).toContain("next month")
+  })
+
+  it("names the dead patch when the peak covers half the year", () => {
+    // Six months called "hardest" is noise. What changes a buy is knowing
+    // which months the product dies in.
+    const said = describeSeason(analyseSeasonality(JANUARY_PEAK), 6)
+    expect(said).toContain("goes quiet in October to December")
+  })
+
+  it("reads a run of months as a window rather than a list", () => {
+    const said = describeSeason(analyseSeasonality(PARTIAL), 6)
+    expect(said).toContain("September to December")
   })
 
   it("tells an evergreen seller that timing is not the risk", () => {
