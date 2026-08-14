@@ -220,12 +220,13 @@ export function describeSeason(
     const weakerMonths = [
       ...new Set([...profile.slowerMonths, ...profile.quietMonths]),
     ].sort((a, b) => a - b)
-    if (weakerMonths.length > 0) {
+    const weakerRun = longestRun(weakerMonths)
+    if (weakerRun.length >= 2) {
       const consequence =
-        profile.quietMonths.length > 0
+        weakerRun.some((month) => profile.quietMonths.includes(month))
           ? "; stock bought just before that sits"
           : ""
-      return `Sells well most of the year, and slows through ${listMonths(weakerMonths)}${consequence}.`
+      return `Sells well most of the year, and slows through ${listMonths(weakerRun)}${consequence}.`
     }
     return "Sells at much the same rate all year, so timing is not the risk here."
   }
@@ -250,6 +251,26 @@ export function describeSeason(
       : ""
 
   return `Sells hardest in ${when}.${strength} ${timing}`
+}
+
+function longestRun(months: number[]): number[] {
+  if (months.length === 0) return []
+
+  const extended = [...months, ...months.map((month) => month + 12)]
+  let bestStart = 0
+  let bestLength = 1
+  let start = 0
+  for (let index = 1; index < extended.length; index++) {
+    if (extended[index] !== extended[index - 1] + 1) start = index
+    const length = index - start + 1
+    if (length > bestLength && start < months.length) {
+      bestStart = start
+      bestLength = Math.min(length, months.length)
+    }
+  }
+
+  return [...new Set(extended.slice(bestStart, bestStart + bestLength).map((month) => month % 12 || 12))]
+    .sort((a, b) => a - b)
 }
 
 /** Consecutive months read as a window: "September to December", not a list. */

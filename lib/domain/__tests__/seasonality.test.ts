@@ -84,14 +84,15 @@ describe("describeSeason", () => {
   it("names a broad peak's slower run across the end of the year", () => {
     const said = describeSeason(analyseSeasonality(CRAYOLA), 10)
     expect(said).toContain("slows through November to February")
+    expect(said).not.toContain("July")
     expect(said).toContain("stock bought just before that sits")
   })
 
-  it("does not invent a slower run when the broad peak has none", () => {
+  it("does not invent a slower run from an isolated weaker month", () => {
     const profile: SeasonalProfile = {
       peakMonths: [1, 2, 3, 4, 5, 6],
       quietMonths: [],
-      slowerMonths: [],
+      slowerMonths: [8],
       surgeMultiple: null,
       seasonRatio: 0.5,
       classification: "seasonal",
