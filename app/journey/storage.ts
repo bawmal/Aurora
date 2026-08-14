@@ -54,12 +54,14 @@ export function isProgress(value: unknown): value is JourneyProgress {
   return (
     Array.isArray(progress.completedMilestones) &&
     progress.completedMilestones.every((key) => typeof key === "string") &&
-    Array.isArray(progress.unlockedTracks) &&
-    progress.unlockedTracks.every((track) => typeof track === "string") &&
-    Array.isArray(progress.analysedAsins) &&
-    progress.analysedAsins.every((asin) => typeof asin === "string") &&
-    !!progress.skills &&
-    typeof progress.skills === "object"
+    (progress.unlockedTracks === undefined ||
+      (Array.isArray(progress.unlockedTracks) &&
+        progress.unlockedTracks.every((track) => typeof track === "string"))) &&
+    (progress.analysedAsins === undefined ||
+      (Array.isArray(progress.analysedAsins) &&
+        progress.analysedAsins.every((asin) => typeof asin === "string"))) &&
+    (progress.skills === undefined ||
+      (typeof progress.skills === "object" && progress.skills !== null))
   )
 }
 
@@ -75,7 +77,10 @@ export function parseJourneyState(raw: string | null): StoredState {
       progress: {
         ...NO_PROGRESS,
         ...value.progress,
-        productsAnalysed: value.progress.analysedAsins.length,
+        skills: value.progress.skills ?? {},
+        analysedAsins: value.progress.analysedAsins ?? [],
+        unlockedTracks: value.progress.unlockedTracks ?? [],
+        productsAnalysed: value.progress.analysedAsins?.length ?? 0,
       },
     }
   } catch {

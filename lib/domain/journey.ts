@@ -1,4 +1,10 @@
-import { MILESTONES, TRACKS, milestonesFor, trackTemplate } from "./curriculum"
+import {
+  MILESTONES,
+  TRACKS,
+  milestonesFor,
+  skillDefinition,
+  trackTemplate,
+} from "./curriculum"
 import { dueRequirements, REQUIREMENTS } from "./jurisdictions"
 import type {
   JourneyProgress,
@@ -232,7 +238,7 @@ export function unlockProgress(
   for (const { skill, level } of template.unlock.skills) {
     total++
     if (skillLevel(progress, skill) >= level) met++
-    else outstanding.push(`${skill} at level ${level}`)
+    else outstanding.push(`${skillDefinition(skill).name} at level ${level}`)
   }
 
   if (template.unlock.requiresEntity) {

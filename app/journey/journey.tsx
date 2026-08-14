@@ -47,6 +47,12 @@ const READINESS_LABELS = {
   skill: "Skills",
 } as const
 
+const MARKETPLACE_LABELS: Record<Marketplace, string> = {
+  "amazon.ca": "Amazon Canada",
+  "amazon.com": "Amazon US",
+  "amazon.co.uk": "Amazon UK",
+}
+
 export function Journey() {
   const [profile, setProfile] = useState(DEFAULT_PROFILE)
   const [progress, setProgress] = useState(NO_PROGRESS)
@@ -55,12 +61,16 @@ export function Journey() {
   const [reinvest, setReinvest] = useState("100")
   const [targetProfit, setTargetProfit] = useState("2000")
   const [timeline, setTimeline] = useState("12")
+  const [capitalText, setCapitalText] = useState(String(DEFAULT_PROFILE.capital))
+  const [minRoiText, setMinRoiText] = useState(String(DEFAULT_PROFILE.minRoi * 100))
   const currency = MARKETPLACE_CURRENCY[profile.marketplaces[0]]
 
   useEffect(() => {
     const stored = readJourneyState()
     setProfile(stored.profile)
     setProgress(stored.progress)
+    setCapitalText(String(stored.profile.capital))
+    setMinRoiText(String(stored.profile.minRoi * 100))
     setLoaded(true)
   }, [])
 
@@ -136,16 +146,20 @@ export function Journey() {
             ))}
           </Select>
           <Field
-            label="Capital"
-            value={String(profile.capital)}
-            onChange={(value) => updateProfile({ capital: positive(value, 0) })}
+            label={`Capital (${currency})`}
+            value={capitalText}
+            onChange={(value) => {
+              setCapitalText(value)
+              updateProfile({ capital: positive(value, 0) })
+            }}
           />
           <Field
             label="Minimum ROI (%)"
-            value={String(profile.minRoi * 100)}
-            onChange={(value) =>
+            value={minRoiText}
+            onChange={(value) => {
+              setMinRoiText(value)
               updateProfile({ minRoi: positive(value, 0) / 100 })
-            }
+            }}
           />
         </div>
       </Card>
@@ -162,7 +176,7 @@ export function Journey() {
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <Overline>{move.track}</Overline>
+                  <Overline>{trackTemplate(move.track).name}</Overline>
                   <h3 className="mt-1 text-lg font-semibold">{move.name}</h3>
                   <p
                     className="mt-2 text-sm"
@@ -282,7 +296,11 @@ export function Journey() {
             <Overline>By marketplace</Overline>
             <div className="mt-3 grid gap-3 sm:grid-cols-3">
               {Object.entries(ready.marketplaces).map(([key, value]) => (
-                <Bar key={key} label={key} value={value ?? 0} />
+                <Bar
+                  key={key}
+                  label={MARKETPLACE_LABELS[key as Marketplace]}
+                  value={value ?? 0}
+                />
               ))}
             </div>
           </div>

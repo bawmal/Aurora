@@ -279,6 +279,7 @@ describe("unlocks", () => {
     const u = unlockProgress("wholesale", seller(), progress())
     expect(u.outstanding.length).toBeGreaterThan(0)
     expect(u.outstanding.join(" ")).toContain("registered business")
+    expect(u.outstanding.join(" ")).toContain("Product analysis at level 3")
   })
 
   it("opens wholesale when every requirement is met", () => {
