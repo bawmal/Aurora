@@ -62,7 +62,7 @@ export function Journey() {
   const [targetProfit, setTargetProfit] = useState("2000")
   const [timeline, setTimeline] = useState("12")
   const [capitalText, setCapitalText] = useState(String(DEFAULT_PROFILE.capital))
-  const [minRoiText, setMinRoiText] = useState(String(DEFAULT_PROFILE.minRoi * 100))
+  const [minRoiText, setMinRoiText] = useState(formatPercentage(DEFAULT_PROFILE.minRoi))
   const currency = MARKETPLACE_CURRENCY[profile.marketplaces[0]]
 
   useEffect(() => {
@@ -70,7 +70,7 @@ export function Journey() {
     setProfile(stored.profile)
     setProgress(stored.progress)
     setCapitalText(String(stored.profile.capital))
-    setMinRoiText(String(stored.profile.minRoi * 100))
+    setMinRoiText(formatPercentage(stored.profile.minRoi))
     setLoaded(true)
   }, [])
 
@@ -103,8 +103,9 @@ export function Journey() {
         projectionInputs,
         positive(targetProfit, 0),
         positive(timeline, 12),
+        currency,
       ),
-    [projectionInputs, targetProfit, timeline],
+    [currency, projectionInputs, targetProfit, timeline],
   )
   const ready = useMemo(() => readiness(profile, progress), [profile, progress])
 
@@ -657,6 +658,10 @@ function Select({
 function positive(value: string, fallback: number) {
   const number = Number.parseFloat(value)
   return Number.isFinite(number) ? Math.max(0, number) : fallback
+}
+
+function formatPercentage(value: number): string {
+  return String(Math.round(value * 10000) / 100)
 }
 
 function clamp(value: number, min: number, max: number) {

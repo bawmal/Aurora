@@ -69,13 +69,13 @@ describe("earnings projection", () => {
 
 describe("reachability", () => {
   it("confirms a target the trajectory actually reaches", () => {
-    const r = reachability(base, 2000, 12)
+    const r = reachability(base, 2000, 12, "CAD")
     expect(r.verdict).toBe("reachable")
     expect(r.runRateAtDeadline).toBeGreaterThanOrEqual(2000)
   })
 
   it("gives a real date for an over-ambitious target instead of a fantasy plan", () => {
-    const r = reachability(base, 5000, 12)
+    const r = reachability(base, 5000, 12, "CAD")
     expect(r.verdict).toBe("reachable-later")
     expect(r.runRateAtDeadline).toBeLessThan(5000)
     expect(r.monthsToTarget).not.toBeNull()
@@ -83,25 +83,36 @@ describe("reachability", () => {
   })
 
   it("shows the arithmetic behind every verdict", () => {
-    const r = reachability(base, 5000, 12)
+    const r = reachability(base, 5000, 12, "CAD")
     expect(r.workings.length).toBeGreaterThanOrEqual(3)
     expect(r.workings.join(" ")).toContain("30%")
     expect(r.workings.join(" ")).toContain("8 turns")
   })
 
   it("says so plainly when the target is out of reach on these assumptions", () => {
-    const r = reachability({ ...base, capital: 200, turnsPerYear: 2 }, 500_000, 12)
+    const r = reachability(
+      { ...base, capital: 200, turnsPerYear: 2 },
+      500_000,
+      12,
+      "CAD",
+    )
     expect(r.monthsToTarget).toBeNull()
     expect(r.workings.join(" ")).toContain("Raise turn speed")
   })
 
   it("does not judge a seller who has set no profit target", () => {
-    expect(reachability(base, 0, 12).verdict).toBe("not-modelled")
+    expect(reachability(base, 0, 12, "CAD").verdict).toBe("not-modelled")
   })
 
   it("moves the date when the seller changes an assumption", () => {
-    const slow = reachability(base, 5000, 12)
-    const fast = reachability({ ...base, turnsPerYear: 12 }, 5000, 12)
+    const slow = reachability(base, 5000, 12, "CAD")
+    const fast = reachability({ ...base, turnsPerYear: 12 }, 5000, 12, "CAD")
     expect(fast.monthsToTarget!).toBeLessThan(slow.monthsToTarget!)
+  })
+
+  it("uses the seller's currency in the workings", () => {
+    const r = reachability(base, 5000, 12, "GBP")
+    expect(r.workings.join(" ")).toContain("GBP 2,000")
+    expect(r.workings.join(" ")).toContain("GBP 2,510")
   })
 })

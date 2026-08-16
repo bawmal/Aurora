@@ -1,4 +1,5 @@
 import type {
+  Currency,
   Projection,
   ProjectionInputs,
   ProjectionTurn,
@@ -81,11 +82,12 @@ export function reachability(
   inputs: ProjectionInputs,
   targetMonthlyProfit: number,
   timelineMonths: number,
+  currency: Currency,
 ): Reachability {
   const atDeadline = runRateAt(inputs, timelineMonths)
   const workings: string[] = [
-    `${money(inputs.capital)} at ${pct(inputs.targetRoi)} ROI, ${inputs.turnsPerYear} turns a year`,
-    `by month ${timelineMonths}: about ${money(atDeadline)} a month`,
+    `${money(currency, inputs.capital)} at ${pct(inputs.targetRoi)} ROI, ${inputs.turnsPerYear} turns a year`,
+    `by month ${timelineMonths}: about ${money(currency, atDeadline)} a month`,
   ]
 
   if (targetMonthlyProfit <= 0) {
@@ -99,7 +101,7 @@ export function reachability(
   }
 
   if (atDeadline >= targetMonthlyProfit) {
-    workings.push(`target of ${money(targetMonthlyProfit)} a month is reached inside the timeline`)
+    workings.push(`target of ${money(currency, targetMonthlyProfit)} a month is reached inside the timeline`)
     return {
       verdict: "reachable",
       runRateAtDeadline: atDeadline,
@@ -112,8 +114,8 @@ export function reachability(
   const months = monthsToReach(inputs, targetMonthlyProfit)
   workings.push(
     months === null
-      ? `target of ${money(targetMonthlyProfit)} a month is not reached within ${HORIZON_MONTHS} months on these assumptions. Raise turn speed, raise ROI, or add capital`
-      : `target of ${money(targetMonthlyProfit)} a month arrives around month ${months} on this trajectory`,
+      ? `target of ${money(currency, targetMonthlyProfit)} a month is not reached within ${HORIZON_MONTHS} months on these assumptions. Raise turn speed, raise ROI, or add capital`
+      : `target of ${money(currency, targetMonthlyProfit)} a month arrives around month ${months} on this trajectory`,
   )
 
   return {
@@ -135,8 +137,8 @@ function monthsToReach(inputs: ProjectionInputs, targetMonthlyProfit: number): n
   return null
 }
 
-function money(n: number): string {
-  return `$${round(n).toLocaleString("en-US", { maximumFractionDigits: 0 })}`
+function money(currency: Currency, n: number): string {
+  return `${currency} ${round(n).toLocaleString("en-US", { maximumFractionDigits: 0 })}`
 }
 
 function pct(n: number): string {
