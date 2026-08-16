@@ -57,8 +57,8 @@ export function Journey() {
   const [profile, setProfile] = useState(DEFAULT_PROFILE)
   const [progress, setProgress] = useState(NO_PROGRESS)
   const [loaded, setLoaded] = useState(false)
-  const [turns, setTurns] = useState("12")
-  const [reinvest, setReinvest] = useState("100")
+  const [turns, setTurns] = useState("6")
+  const [reinvest, setReinvest] = useState("50")
   const [targetProfit, setTargetProfit] = useState("2000")
   const [timeline, setTimeline] = useState("12")
   const [capitalText, setCapitalText] = useState(String(DEFAULT_PROFILE.capital))
@@ -221,9 +221,12 @@ export function Journey() {
             </h2>
           </div>
           <Card>
-            <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-              A model, never a promise. Change the assumptions to see what
-              moves.
+            <h3 className="text-lg font-semibold">
+              Illustrative model — not a forecast
+            </h3>
+            <p className="mt-2 text-sm" style={{ color: "var(--text-muted)" }}>
+              Actual results depend on finding enough qualifying inventory and
+              selling it through on schedule.
             </p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <Field label="Turns per year" value={turns} onChange={setTurns} />
