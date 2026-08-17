@@ -12,6 +12,7 @@ import {
   nextMove,
   readiness,
   resolveGate,
+  resolveGuidance,
   isTrackOpen,
   unlockProgress,
 } from "@/lib/domain/journey"
@@ -121,9 +122,15 @@ export function Journey() {
 
   return (
     <div className="grid gap-8">
-      <Card>
-        <Overline>Start with what you know</Overline>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <details>
+        <summary className="cursor-pointer">
+          <Overline>Profile</Overline>
+        </summary>
+        <Card className="mt-3">
+          <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+            Keep these inputs close so the model speaks to your situation.
+          </p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Select
             label="Residency"
             value={profile.residency}
@@ -162,8 +169,9 @@ export function Journey() {
               updateProfile({ minRoi: positive(value, 0) / 100 })
             }}
           />
-        </div>
-      </Card>
+          </div>
+        </Card>
+      </details>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_1fr]">
         <section className="grid content-start gap-4">
@@ -179,10 +187,7 @@ export function Journey() {
                 <div>
                   <Overline>{trackTemplate(move.track).name}</Overline>
                   <h3 className="mt-1 text-lg font-semibold">{move.name}</h3>
-                  <p
-                    className="mt-2 text-sm"
-                    style={{ color: "var(--text-muted)" }}
-                  >
+                  <p className="mt-2 text-sm" style={{ color: "var(--text-muted)" }}>
                     {milestoneDescription(move.key)}
                   </p>
                 </div>
@@ -196,14 +201,7 @@ export function Journey() {
                   ))}
                 </div>
               ) : (
-                <button
-                  type="button"
-                  onClick={completeMove}
-                  className="mt-5 rounded-md px-4 py-2 text-sm font-medium text-white"
-                  style={{ background: "var(--accent)" }}
-                >
-                  Mark complete
-                </button>
+                <Module guidance={resolveGuidance(move.key, move.marketplace)} onComplete={completeMove} />
               )}
             </Card>
           ) : (
@@ -228,14 +226,6 @@ export function Journey() {
               Actual results depend on finding enough qualifying inventory and
               selling it through on schedule.
             </p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <Field label="Turns per year" value={turns} onChange={setTurns} />
-              <Field
-                label="Reinvest rate (%)"
-                value={reinvest}
-                onChange={setReinvest}
-              />
-            </div>
             <div className="mt-5 grid grid-cols-3 gap-3">
               <Metric
                 label="Monthly run rate"
@@ -248,20 +238,32 @@ export function Journey() {
               <Metric
                 label="Cumulative profit"
                 value={money(currency, projection.cumulativeProfit)}
+                subdued
               />
             </div>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              <Field
-                label="Target monthly profit"
-                value={targetProfit}
-                onChange={setTargetProfit}
-              />
-              <Field
-                label="Timeline (months)"
-                value={timeline}
-                onChange={setTimeline}
-              />
-            </div>
+            <details className="mt-5">
+              <summary className="cursor-pointer text-sm font-medium">
+                Change assumptions
+              </summary>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <Field label="Turns per year" value={turns} onChange={setTurns} />
+                <Field
+                  label="Reinvest rate (%)"
+                  value={reinvest}
+                  onChange={setReinvest}
+                />
+                <Field
+                  label="Target monthly profit"
+                  value={targetProfit}
+                  onChange={setTargetProfit}
+                />
+                <Field
+                  label="Timeline (months)"
+                  value={timeline}
+                  onChange={setTimeline}
+                />
+              </div>
+            </details>
             <div
               className="mt-4 rounded-lg p-3"
               style={{ background: verdictTint(goal.verdict) }}
@@ -371,6 +373,68 @@ function Gate({ id }: { id: string }) {
       </p>
     )
   return <Requirement requirement={gate.requirement} />
+}
+
+function Module({
+  guidance,
+  onComplete,
+}: {
+  guidance: ReturnType<typeof resolveGuidance>
+  onComplete: () => void
+}) {
+  if (!guidance) {
+    return (
+      <button
+        type="button"
+        onClick={onComplete}
+        className="mt-5 rounded-md px-4 py-2 text-sm font-medium text-white"
+        style={{ background: "var(--accent)" }}
+      >
+        Confirm complete
+      </button>
+    )
+  }
+
+  return (
+    <div className="mt-5 grid gap-4">
+      <div>
+        <Overline>How to do it</Overline>
+        <ol className="mt-2 grid gap-2 text-sm">
+          {guidance.steps.map((step, index) => (
+            <li key={step}>
+              <span className="data mr-2" style={{ color: "var(--text-muted)" }}>
+                {index + 1}.
+              </span>
+              {step}
+            </li>
+          ))}
+        </ol>
+      </div>
+      {guidance.pitfall && (
+        <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+          <strong>Watch for this:</strong> {guidance.pitfall}
+        </p>
+      )}
+      <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+        Usually takes {guidance.duration}.
+      </p>
+      <div>
+        <button
+          type="button"
+          onClick={onComplete}
+          className="rounded-md px-4 py-2 text-left text-sm font-medium text-white"
+          style={{ background: "var(--accent)" }}
+        >
+          {guidance.doneWhen}
+        </button>
+        {!guidance.verified && (
+          <p className="mt-2 text-xs" style={{ color: "var(--text-muted)" }}>
+            You told us
+          </p>
+        )}
+      </div>
+    </div>
+  )
 }
 
 function Requirement({ requirement }: { requirement: SetupRequirement }) {
@@ -567,11 +631,24 @@ function Bar({ label, value }: { label: string; value: number }) {
   )
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({
+  label,
+  value,
+  subdued = false,
+}: {
+  label: string
+  value: string
+  subdued?: boolean
+}) {
   return (
     <div>
       <Overline>{label}</Overline>
-      <p className="data mt-1 text-lg font-semibold">{value}</p>
+      <p
+        className={`data mt-1 ${subdued ? "text-sm" : "text-lg"} font-semibold`}
+        style={subdued ? { color: "var(--text-muted)" } : undefined}
+      >
+        {value}
+      </p>
     </div>
   )
 }
@@ -680,10 +757,7 @@ function verdictTint(verdict: Reachability["verdict"]) {
 }
 
 function money(currency: string, value: number) {
-  return `${currency} ${value.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`
+  return `${currency} ${Math.round(value).toLocaleString("en-US")}`
 }
 
 function reachabilitySentence(

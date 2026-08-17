@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest"
-import { ACHIEVEMENTS, MILESTONES, SKILLS, TRACKS, milestonesFor } from "../curriculum"
+import {
+  ACHIEVEMENTS,
+  MILESTONES,
+  SKILLS,
+  TRACKS,
+  milestonesFor,
+} from "../curriculum"
 import {
   baseKey,
   completeMilestone,
@@ -10,6 +16,7 @@ import {
   readiness,
   recordAnalysis,
   resolveGate,
+  resolveGuidance,
   unlockProgress,
 } from "../journey"
 import type { JourneyProgress, SellerProfile } from "../types"
@@ -41,6 +48,20 @@ describe("curriculum integrity", () => {
     unique(TRACKS.map((t) => t.type))
     unique(SKILLS.map((s) => s.key))
     unique(ACHIEVEMENTS.map((a) => a.key))
+  })
+
+  it("has exactly one guidance module for every milestone", async () => {
+    const { MODULE_GUIDANCE } = await import("../guidance")
+    expect(Object.keys(MODULE_GUIDANCE).sort()).toEqual(
+      MILESTONES.map((milestone) => milestone.key).sort(),
+    )
+  })
+
+  it("resolves marketplace guidance from an instance key", () => {
+    const guidance = resolveGuidance("mk_account@amazon.co.uk", "amazon.co.uk")
+    expect(guidance?.steps[0]).toContain("amazon.co.uk")
+    expect(guidance?.doneWhen).toContain("amazon.co.uk")
+    expect(resolveGuidance("missing")).toBeNull()
   })
 
   it("has no dependency pointing at a milestone that does not exist", () => {

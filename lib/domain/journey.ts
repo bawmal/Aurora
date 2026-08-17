@@ -5,6 +5,7 @@ import {
   skillDefinition,
   trackTemplate,
 } from "./curriculum"
+import { MODULE_GUIDANCE } from "./guidance"
 import { dueRequirements, REQUIREMENTS } from "./jurisdictions"
 import type {
   JourneyProgress,
@@ -19,6 +20,7 @@ import type {
   UnlockProgress,
   SetupRequirement,
 } from "./types"
+import type { ModuleGuidance } from "./guidance"
 
 /**
  * The journey engine, as pure functions over the curriculum and the seller's
@@ -44,6 +46,26 @@ export function resolveGate(id: string): GateResolution | null {
   const requirement = REQUIREMENTS.find((candidate) => candidate.id === id)
   if (requirement) return { kind: "requirement", requirement }
   return null
+}
+
+export function resolveGuidance(
+  id: string,
+  marketplace: Marketplace | null = null,
+): ModuleGuidance | null {
+  const guidance = MODULE_GUIDANCE[baseKey(id)]
+  if (!guidance) return null
+  return {
+    ...guidance,
+    steps: guidance.steps.map((step) => substituteMarketplace(step, marketplace)),
+    doneWhen: substituteMarketplace(guidance.doneWhen, marketplace),
+    pitfall: guidance.pitfall
+      ? substituteMarketplace(guidance.pitfall, marketplace)
+      : undefined,
+  }
+}
+
+function substituteMarketplace(text: string, marketplace: Marketplace | null): string {
+  return marketplace ? text.replaceAll("{marketplace}", marketplace) : text
 }
 
 /** A marketplace milestone key is scoped per marketplace: `mk_account@amazon.com`. */
