@@ -68,7 +68,7 @@ export const MODULE_GUIDANCE: Record<string, ModuleGuidance> = {
   // ------------------------------------------------------------- marketplace
   mk_account: {
     steps: [
-      "Register for a {marketplace} selling account using your business email.",
+      "Register for a selling account on {marketplace} using your business email.",
       "Enter your details exactly as they appear on your ID and your bank statement.",
       "Have your ID, a proof of address and your bank details ready before you start.",
     ],

@@ -58,12 +58,8 @@ export function Journey() {
   const [reinvest, setReinvest] = useState("50")
   const [targetProfit, setTargetProfit] = useState("2000")
   const [timeline, setTimeline] = useState("12")
-  const [capitalText, setCapitalText] = useState(
-    String(DEFAULT_PROFILE.capital),
-  )
-  const [minRoiText, setMinRoiText] = useState(
-    formatPercentage(DEFAULT_PROFILE.minRoi),
-  )
+  const [capitalText, setCapitalText] = useState(String(DEFAULT_PROFILE.capital))
+  const [minRoiText, setMinRoiText] = useState(formatPercentage(DEFAULT_PROFILE.minRoi))
   const [profileOpen, setProfileOpen] = useState(true)
   const currency = MARKETPLACE_CURRENCY[profile.marketplaces[0]]
 
@@ -113,7 +109,6 @@ export function Journey() {
   const ready = useMemo(() => readiness(profile, progress), [profile, progress])
 
   const updateProfile = (patch: Partial<SellerProfile>) => {
-    setProfileOpen(false)
     setProfile((current) => ({ ...current, ...patch }))
   }
 
@@ -139,9 +134,7 @@ export function Journey() {
               label="Residency"
               value={profile.residency}
               onChange={(value) =>
-                updateProfile({
-                  residency: value as SellerProfile["residency"],
-                })
+                updateProfile({ residency: value as SellerProfile["residency"] })
               }
             >
               <option value="CA">Canada</option>
@@ -156,7 +149,9 @@ export function Journey() {
               }
             >
               {MARKETPLACES.map((marketplace) => (
-                <option key={marketplace}>{marketplace}</option>
+                <option key={marketplace} value={marketplace}>
+                  {MARKETPLACE_LABELS[marketplace]}
+                </option>
               ))}
             </Select>
             <Field
@@ -193,10 +188,7 @@ export function Journey() {
                 <div>
                   <Overline>{trackTemplate(move.track).name}</Overline>
                   <h3 className="mt-1 text-lg font-semibold">{move.name}</h3>
-                  <p
-                    className="mt-2 text-sm"
-                    style={{ color: "var(--text-muted)" }}
-                  >
+                  <p className="mt-2 text-sm" style={{ color: "var(--text-muted)" }}>
                     {milestoneDescription(move.key)}
                   </p>
                 </div>
@@ -210,10 +202,7 @@ export function Journey() {
                   ))}
                 </div>
               ) : (
-                <Module
-                  guidance={resolveGuidance(move.key, move.marketplace)}
-                  onComplete={completeMove}
-                />
+                <Module guidance={resolveGuidance(move.key, move.marketplace)} onComplete={completeMove} />
               )}
             </Card>
           ) : (
@@ -258,11 +247,7 @@ export function Journey() {
                 Change assumptions
               </summary>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <Field
-                  label="Turns per year"
-                  value={turns}
-                  onChange={setTurns}
-                />
+                <Field label="Turns per year" value={turns} onChange={setTurns} />
                 <Field
                   label="Reinvest rate (%)"
                   value={reinvest}
@@ -418,10 +403,7 @@ function Module({
         <ol className="mt-2 grid gap-2 text-sm">
           {guidance.steps.map((step, index) => (
             <li key={step}>
-              <span
-                className="data mr-2"
-                style={{ color: "var(--text-muted)" }}
-              >
+              <span className="data mr-2" style={{ color: "var(--text-muted)" }}>
                 {index + 1}.
               </span>
               {step}

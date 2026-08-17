@@ -43,8 +43,7 @@ const progress = (over: Partial<JourneyProgress> = {}): JourneyProgress => ({
 
 describe("curriculum integrity", () => {
   it("has unique milestone, track, skill and achievement keys", () => {
-    const unique = (keys: string[]) =>
-      expect(new Set(keys).size).toBe(keys.length)
+    const unique = (keys: string[]) => expect(new Set(keys).size).toBe(keys.length)
     unique(MILESTONES.map((m) => m.key))
     unique(TRACKS.map((t) => t.type))
     unique(SKILLS.map((s) => s.key))
@@ -69,10 +68,7 @@ describe("curriculum integrity", () => {
     const keys = new Set(MILESTONES.map((m) => m.key))
     for (const milestone of MILESTONES) {
       for (const dependency of milestone.dependencies) {
-        expect(
-          keys.has(dependency),
-          `${milestone.key} depends on ${dependency}`,
-        ).toBe(true)
+        expect(keys.has(dependency), `${milestone.key} depends on ${dependency}`).toBe(true)
       }
     }
   })
@@ -90,8 +86,7 @@ describe("curriculum integrity", () => {
     const byKey = new Map(MILESTONES.map((m) => [m.key, m]))
     const walk = (key: string, seen: string[]): void => {
       expect(seen.includes(key), `cycle through ${key}`).toBe(false)
-      for (const dep of byKey.get(key)?.dependencies ?? [])
-        walk(dep, [...seen, key])
+      for (const dep of byKey.get(key)?.dependencies ?? []) walk(dep, [...seen, key])
     }
     for (const milestone of MILESTONES) walk(milestone.key, [])
   })
@@ -110,10 +105,7 @@ describe("curriculum integrity", () => {
     const ids = new Set(REQUIREMENTS.map((r) => r.id))
     for (const milestone of MILESTONES) {
       for (const requirement of milestone.requires) {
-        expect(
-          ids.has(requirement),
-          `${milestone.key} requires ${requirement}`,
-        ).toBe(true)
+        expect(ids.has(requirement), `${milestone.key} requires ${requirement}`).toBe(true)
       }
     }
   })
@@ -124,15 +116,10 @@ describe("curriculum integrity", () => {
     // also gate another requirement: an EIN really does come before a US
     // bank account.
     const { REQUIREMENTS } = await import("../jurisdictions")
-    const known = new Set([
-      ...MILESTONES.map((m) => m.key),
-      ...REQUIREMENTS.map((r) => r.id),
-    ])
+    const known = new Set([...MILESTONES.map((m) => m.key), ...REQUIREMENTS.map((r) => r.id)])
     for (const requirement of REQUIREMENTS) {
       for (const blocked of requirement.blocks) {
-        expect(known.has(blocked), `${requirement.id} blocks ${blocked}`).toBe(
-          true,
-        )
+        expect(known.has(blocked), `${requirement.id} blocks ${blocked}`).toBe(true)
       }
     }
   })
@@ -144,9 +131,7 @@ describe("curriculum integrity", () => {
     for (const milestone of MILESTONES) {
       for (const id of milestone.requires) {
         const requirement = REQUIREMENTS.find((r) => r.id === id)
-        expect(requirement?.blocks, `${id} on ${milestone.key}`).toContain(
-          milestone.key,
-        )
+        expect(requirement?.blocks, `${id} on ${milestone.key}`).toContain(milestone.key)
       }
     }
   })
@@ -155,10 +140,8 @@ describe("curriculum integrity", () => {
     const keys = new Set(MILESTONES.map((m) => m.key))
     const tracks = new Set(TRACKS.map((t) => t.type))
     for (const achievement of ACHIEVEMENTS) {
-      if ("milestone" in achievement.on)
-        expect(keys.has(achievement.on.milestone)).toBe(true)
-      if ("trackUnlocked" in achievement.on)
-        expect(tracks.has(achievement.on.trackUnlocked)).toBe(true)
+      if ("milestone" in achievement.on) expect(keys.has(achievement.on.milestone)).toBe(true)
+      if ("trackUnlocked" in achievement.on) expect(tracks.has(achievement.on.trackUnlocked)).toBe(true)
     }
   })
 
@@ -225,25 +208,16 @@ describe("milestone states", () => {
       progress(),
     )
     const accounts = states.filter((s) => baseKey(s.key) === "mk_account")
-    expect(accounts.map((s) => s.marketplace).sort()).toEqual([
-      "amazon.ca",
-      "amazon.com",
-    ])
+    expect(accounts.map((s) => s.marketplace).sort()).toEqual(["amazon.ca", "amazon.com"])
   })
 
   it("progresses one marketplace without touching the other", () => {
     const states = milestoneStates(
       seller({ marketplaces: ["amazon.ca", "amazon.com"] }),
-      progress({
-        completedMilestones: [instanceKey("mk_account", "amazon.ca")],
-      }),
+      progress({ completedMilestones: [instanceKey("mk_account", "amazon.ca")] }),
     )
-    const ca = states.find(
-      (s) => s.key === instanceKey("mk_verified", "amazon.ca"),
-    )
-    const us = states.find(
-      (s) => s.key === instanceKey("mk_verified", "amazon.com"),
-    )
+    const ca = states.find((s) => s.key === instanceKey("mk_verified", "amazon.ca"))
+    const us = states.find((s) => s.key === instanceKey("mk_verified", "amazon.com"))
     expect(ca?.status).not.toBe("gated")
     expect(us?.status).toBe("gated")
   })
@@ -261,9 +235,7 @@ describe("milestone states", () => {
       seller(),
       progress({ completedMilestones: ["ra_first_analysis", "ra_first_buy"] }),
     )
-    expect(states.find((s) => s.key === "ra_first_shipment")?.status).not.toBe(
-      "gated",
-    )
+    expect(states.find((s) => s.key === "ra_first_shipment")?.status).not.toBe("gated")
   })
 
   it("hides a locked track entirely rather than teasing it", () => {
@@ -276,9 +248,7 @@ describe("milestone states", () => {
   it("lets a seller analyse products before any account exists", () => {
     // The first analysis milestone must never be gated behind setup, or the
     // fastest useful thing in the product sits behind the slowest.
-    const first = milestoneStates(seller(), progress()).find(
-      (s) => s.key === "ra_first_analysis",
-    )
+    const first = milestoneStates(seller(), progress()).find((s) => s.key === "ra_first_analysis")
     expect(first?.blockedBy).toEqual([])
   })
 })
@@ -299,10 +269,7 @@ describe("compliance gates reach the map only where they apply", () => {
 
   it("drops the gate once the seller has done it", () => {
     const state = milestoneStates(
-      seller({
-        marketplaces: ["amazon.ca"],
-        completedRequirements: ["amz.tax-interview"],
-      }),
+      seller({ marketplaces: ["amazon.ca"], completedRequirements: ["amz.tax-interview"] }),
       progress({
         completedMilestones: [
           instanceKey("mk_account", "amazon.ca"),
@@ -314,10 +281,7 @@ describe("compliance gates reach the map only where they apply", () => {
   })
 
   it("does not show a Canadian domestic seller a US payout gate", () => {
-    const states = milestoneStates(
-      seller({ marketplaces: ["amazon.ca"] }),
-      progress(),
-    )
+    const states = milestoneStates(seller({ marketplaces: ["amazon.ca"] }), progress())
     const gates = states.flatMap((s) => s.blockedBy)
     expect(gates).not.toContain("us.ein")
     expect(gates).not.toContain("us.w8bene")
@@ -349,9 +313,7 @@ describe("unlocks", () => {
     expect(u.unlocked).toBe(true)
     expect(u.fraction).toBe(1)
     expect(isTrackOpen("wholesale", ready, done)).toBe(true)
-    expect(
-      milestoneStates(ready, done).some((s) => s.key === "ws_website"),
-    ).toBe(true)
+    expect(milestoneStates(ready, done).some((s) => s.key === "ws_website")).toBe(true)
   })
 
   it("does not open wholesale on skill alone", () => {
@@ -389,9 +351,7 @@ describe("readiness", () => {
   it("does not hold a retail seller down for an untouched wholesale track", () => {
     const retailOnly = readiness(
       seller(),
-      progress({
-        completedMilestones: milestonesFor("retail").map((m) => m.key),
-      }),
+      progress({ completedMilestones: milestonesFor("retail").map((m) => m.key) }),
     )
     expect(retailOnly.dimensions.sourcing).toBe(1)
     expect(retailOnly.overall).toBeGreaterThan(0.2)
@@ -405,7 +365,6 @@ describe("readiness", () => {
     })
     const r = readiness(seller({ entityJurisdiction: "CA" }), everything)
     expect(r.overall).toBeLessThanOrEqual(1)
-    for (const value of Object.values(r.dimensions))
-      expect(value).toBeLessThanOrEqual(1)
+    for (const value of Object.values(r.dimensions)) expect(value).toBeLessThanOrEqual(1)
   })
 })

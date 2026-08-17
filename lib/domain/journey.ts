@@ -7,6 +7,7 @@ import {
 } from "./curriculum"
 import { MODULE_GUIDANCE } from "./guidance"
 import { dueRequirements, REQUIREMENTS } from "./jurisdictions"
+import { MARKETPLACE_LABELS } from "./types"
 import type {
   JourneyProgress,
   Marketplace,
@@ -20,7 +21,6 @@ import type {
   UnlockProgress,
   SetupRequirement,
 } from "./types"
-import { MARKETPLACE_LABELS } from "./types"
 import type { ModuleGuidance } from "./guidance"
 
 /**
@@ -42,9 +42,7 @@ export type GateResolution =
 
 /** Resolve the two vocabularies used by `blockedBy` without making the UI know either table. */
 export function resolveGate(id: string): GateResolution | null {
-  const milestone = MILESTONES.find(
-    (candidate) => candidate.key === baseKey(id),
-  )
+  const milestone = MILESTONES.find((candidate) => candidate.key === baseKey(id))
   if (milestone) return { kind: "milestone", milestone }
   const requirement = REQUIREMENTS.find((candidate) => candidate.id === id)
   if (requirement) return { kind: "requirement", requirement }
@@ -79,10 +77,7 @@ export function substituteMarketplace(
 }
 
 /** A marketplace milestone key is scoped per marketplace: `mk_account@amazon.com`. */
-export function instanceKey(
-  key: string,
-  marketplace: Marketplace | null,
-): string {
+export function instanceKey(key: string, marketplace: Marketplace | null): string {
   return marketplace ? `${key}${MARKETPLACE_SUFFIX}${marketplace}` : key
 }
 
@@ -106,10 +101,7 @@ export function milestoneStates(
   for (const track of TRACKS) {
     if (!isTrackOpen(track.type, profile, progress)) continue
 
-    const instances: {
-      template: MilestoneTemplate
-      marketplace: Marketplace | null
-    }[] = []
+    const instances: { template: MilestoneTemplate; marketplace: Marketplace | null }[] = []
     for (const template of milestonesFor(track.type)) {
       if (template.perMarketplace) {
         for (const marketplace of profile.marketplaces) {
@@ -128,11 +120,7 @@ export function milestoneStates(
         track: track.type,
         name: substituteMarketplace(template.name, marketplace),
         marketplace,
-        status: done.has(key)
-          ? "complete"
-          : blockedBy.length > 0
-            ? "gated"
-            : "available",
+        status: done.has(key) ? "complete" : blockedBy.length > 0 ? "gated" : "available",
         blockedBy,
       })
     }
@@ -178,10 +166,7 @@ function gatesFor(
         profile.completedRequirements,
       )
       for (const requirement of due) {
-        if (
-          template.requires.includes(requirement.id) &&
-          !gates.includes(requirement.id)
-        ) {
+        if (template.requires.includes(requirement.id) && !gates.includes(requirement.id)) {
           gates.push(requirement.id)
         }
       }
@@ -196,9 +181,7 @@ export function nextMove(
   profile: SellerProfile,
   progress: JourneyProgress,
 ): MilestoneState | null {
-  return (
-    milestoneStates(profile, progress).find((s) => s.status === "next") ?? null
-  )
+  return milestoneStates(profile, progress).find((s) => s.status === "next") ?? null
 }
 
 /**
@@ -306,10 +289,7 @@ function milestoneName(key: string): string {
   return MILESTONES.find((m) => m.key === key)?.name ?? key
 }
 
-function skillLevel(
-  progress: JourneyProgress,
-  skill: keyof JourneyProgress["skills"],
-): SkillLevel {
+function skillLevel(progress: JourneyProgress, skill: keyof JourneyProgress["skills"]): SkillLevel {
   return progress.skills[skill] ?? 0
 }
 
@@ -318,21 +298,14 @@ function skillLevel(
  * seller can be ready in Canada, half ready in the US and untouched in the
  * UK, all at once, and flattening that hides the only actionable part.
  */
-export function readiness(
-  profile: SellerProfile,
-  progress: JourneyProgress,
-): Readiness {
+export function readiness(profile: SellerProfile, progress: JourneyProgress): Readiness {
   const states = milestoneStates(profile, progress)
   const share = (subset: MilestoneState[]) =>
-    subset.length === 0
-      ? 0
-      : subset.filter((s) => s.status === "complete").length / subset.length
+    subset.length === 0 ? 0 : subset.filter((s) => s.status === "complete").length / subset.length
 
   const marketplaces: Partial<Record<Marketplace, number>> = {}
   for (const marketplace of profile.marketplaces) {
-    marketplaces[marketplace] = share(
-      states.filter((s) => s.marketplace === marketplace),
-    )
+    marketplaces[marketplace] = share(states.filter((s) => s.marketplace === marketplace))
   }
 
   const dimensions: Record<ReadinessDimension, number> = {
@@ -347,31 +320,19 @@ export function readiness(
   // Weighted toward the work the seller is actually doing, so the headline
   // number moves when they move. An untouched wholesale track should not
   // hold a retail seller at 40%.
-  const active: ReadinessDimension[] = [
-    "business",
-    "marketplace",
-    "sourcing",
-    "skill",
-  ]
-  if (progress.unlockedTracks.includes("wholesale"))
-    active.push("wholesale", "operations")
-  const overall =
-    active.reduce((sum, d) => sum + dimensions[d], 0) / active.length
+  const active: ReadinessDimension[] = ["business", "marketplace", "sourcing", "skill"]
+  if (progress.unlockedTracks.includes("wholesale")) active.push("wholesale", "operations")
+  const overall = active.reduce((sum, d) => sum + dimensions[d], 0) / active.length
 
   return { dimensions, marketplaces, overall }
 }
 
-function skillFraction(
-  progress: JourneyProgress,
-  skill: keyof JourneyProgress["skills"],
-): number {
+function skillFraction(progress: JourneyProgress, skill: keyof JourneyProgress["skills"]): number {
   return skillLevel(progress, skill) / 5
 }
 
 function averageSkill(progress: JourneyProgress): number {
   const levels = Object.values(progress.skills)
   if (levels.length === 0) return 0
-  return (
-    levels.reduce<number>((sum, level) => sum + level, 0) / (levels.length * 5)
-  )
+  return levels.reduce<number>((sum, level) => sum + level, 0) / (levels.length * 5)
 }
