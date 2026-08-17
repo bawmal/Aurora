@@ -21,9 +21,14 @@ describe("earnings projection", () => {
     const p = project(base, 16)
     expect(p.turns).toHaveLength(16)
     // Year two continues from where year one ended.
-    expect(p.turns[8].openingCapital).toBeCloseTo(projectYear(base).endingCapital, 1)
+    expect(p.turns[8].openingCapital).toBeCloseTo(
+      projectYear(base).endingCapital,
+      1,
+    )
     // Cumulative profit covers every turn projected, not just the first year.
-    expect(p.cumulativeProfit).toBeGreaterThan(projectYear(base).cumulativeProfit)
+    expect(p.cumulativeProfit).toBeGreaterThan(
+      projectYear(base).cumulativeProfit,
+    )
   })
 
   it("reports the final turn's profit, not the next turn's", () => {
@@ -47,14 +52,20 @@ describe("earnings projection", () => {
     const withdrawn = projectYear({ ...base, reinvestRate: 0 })
     expect(withdrawn.endingCapital).toBe(2000)
     expect(withdrawn.cumulativeProfit).toBeCloseTo(2000 * 0.3 * 8, 1)
-    expect(withdrawn.endingCapital).toBeLessThan(projectYear(base).endingCapital)
+    expect(withdrawn.endingCapital).toBeLessThan(
+      projectYear(base).endingCapital,
+    )
   })
 
   it("turn speed and ROI are separate levers", () => {
     const faster = projectYear({ ...base, turnsPerYear: 12 })
     const richer = projectYear({ ...base, targetRoi: 0.45 })
-    expect(faster.endingCapital).toBeGreaterThan(projectYear(base).endingCapital)
-    expect(richer.endingCapital).toBeGreaterThan(projectYear(base).endingCapital)
+    expect(faster.endingCapital).toBeGreaterThan(
+      projectYear(base).endingCapital,
+    )
+    expect(richer.endingCapital).toBeGreaterThan(
+      projectYear(base).endingCapital,
+    )
   })
 
   it("rejects a zero turn rate rather than dividing by it", () => {
@@ -114,5 +125,10 @@ describe("reachability", () => {
     const r = reachability(base, 5000, 12, "GBP")
     expect(r.workings.join(" ")).toContain("GBP 2,000")
     expect(r.workings.join(" ")).toContain("GBP 2,510")
+  })
+
+  it("keeps fractional ROI truthful in the workings", () => {
+    const r = reachability({ ...base, targetRoi: 0.007 }, 5000, 12, "CAD")
+    expect(r.workings[0]).toContain("at 0.7% ROI")
   })
 })

@@ -17,6 +17,12 @@ export const RESIDENCIES: readonly Residency[] = ["CA", "US", "GB"] as const
 
 export type Marketplace = "amazon.ca" | "amazon.com" | "amazon.co.uk"
 
+export const MARKETPLACE_LABELS: Record<Marketplace, string> = {
+  "amazon.ca": "Amazon Canada",
+  "amazon.com": "Amazon US",
+  "amazon.co.uk": "Amazon UK",
+}
+
 export const MARKETPLACES: readonly Marketplace[] = [
   "amazon.ca",
   "amazon.com",
@@ -112,11 +118,7 @@ export interface MilestoneState {
 }
 
 export type Stage =
-  | "pre-account"
-  | "new-seller"
-  | "ra-operating"
-  | "us-expansion"
-  | "wholesale"
+  "pre-account" | "new-seller" | "ra-operating" | "us-expansion" | "wholesale"
 
 /** Where a value in the profile came from. Stored by dotted field path. */
 export type ProvenanceSource = "seller" | "derived" | "coach" | "default"
@@ -178,7 +180,8 @@ export const NO_EXTRA_COSTS: LandedCostInputs = {
   returnsRate: 0,
 }
 
-export type WeightTier = "envelope" | "small" | "standard" | "large" | "oversize"
+export type WeightTier =
+  "envelope" | "small" | "standard" | "large" | "oversize"
 
 export interface ProductInput {
   asin: string
@@ -269,11 +272,7 @@ export const DEFAULT_CRITERIA: SellerCriteria = {
 }
 
 export type Seasonality =
-  | "evergreen"
-  | "seasonal"
-  | "highly-seasonal"
-  | "event-driven"
-  | "unknown"
+  "evergreen" | "seasonal" | "highly-seasonal" | "event-driven" | "unknown"
 
 /** Market signals, whether read live or entered by the seller. */
 export interface MarketSignals {
@@ -365,7 +364,8 @@ export interface Projection {
   assumptions: ProjectionInputs
 }
 
-export type ReachabilityVerdict = "reachable" | "reachable-later" | "not-modelled"
+export type ReachabilityVerdict =
+  "reachable" | "reachable-later" | "not-modelled"
 
 export interface Reachability {
   verdict: ReachabilityVerdict
@@ -378,12 +378,7 @@ export interface Reachability {
 }
 
 export type ReadinessDimension =
-  | "business"
-  | "marketplace"
-  | "sourcing"
-  | "wholesale"
-  | "operations"
-  | "skill"
+  "business" | "marketplace" | "sourcing" | "wholesale" | "operations" | "skill"
 
 export interface Readiness {
   /** Per dimension, 0 to 1. Derived on read, never stored as truth. */

@@ -29,12 +29,14 @@ import type {
 } from "@/lib/domain/types"
 import {
   MARKETPLACE_CURRENCY,
+  MARKETPLACE_LABELS,
   MARKETPLACES,
   NO_PROGRESS,
 } from "@/lib/domain/types"
 import {
   completeMilestoneInStorage,
   DEFAULT_PROFILE,
+  hasStoredProfile,
   readJourneyState,
   writeJourneyState,
 } from "./storage"
@@ -48,12 +50,6 @@ const READINESS_LABELS = {
   skill: "Skills",
 } as const
 
-const MARKETPLACE_LABELS: Record<Marketplace, string> = {
-  "amazon.ca": "Amazon Canada",
-  "amazon.com": "Amazon US",
-  "amazon.co.uk": "Amazon UK",
-}
-
 export function Journey() {
   const [profile, setProfile] = useState(DEFAULT_PROFILE)
   const [progress, setProgress] = useState(NO_PROGRESS)
@@ -62,8 +58,13 @@ export function Journey() {
   const [reinvest, setReinvest] = useState("50")
   const [targetProfit, setTargetProfit] = useState("2000")
   const [timeline, setTimeline] = useState("12")
-  const [capitalText, setCapitalText] = useState(String(DEFAULT_PROFILE.capital))
-  const [minRoiText, setMinRoiText] = useState(formatPercentage(DEFAULT_PROFILE.minRoi))
+  const [capitalText, setCapitalText] = useState(
+    String(DEFAULT_PROFILE.capital),
+  )
+  const [minRoiText, setMinRoiText] = useState(
+    formatPercentage(DEFAULT_PROFILE.minRoi),
+  )
+  const [profileOpen, setProfileOpen] = useState(true)
   const currency = MARKETPLACE_CURRENCY[profile.marketplaces[0]]
 
   useEffect(() => {
@@ -72,6 +73,7 @@ export function Journey() {
     setProgress(stored.progress)
     setCapitalText(String(stored.profile.capital))
     setMinRoiText(formatPercentage(stored.profile.minRoi))
+    setProfileOpen(!hasStoredProfile())
     setLoaded(true)
   }, [])
 
@@ -110,8 +112,10 @@ export function Journey() {
   )
   const ready = useMemo(() => readiness(profile, progress), [profile, progress])
 
-  const updateProfile = (patch: Partial<SellerProfile>) =>
+  const updateProfile = (patch: Partial<SellerProfile>) => {
+    setProfileOpen(false)
     setProfile((current) => ({ ...current, ...patch }))
+  }
 
   const completeMove = () => {
     if (!move) return
@@ -122,7 +126,7 @@ export function Journey() {
 
   return (
     <div className="grid gap-8">
-      <details>
+      <details open={profileOpen}>
         <summary className="cursor-pointer">
           <Overline>Profile</Overline>
         </summary>
@@ -131,44 +135,46 @@ export function Journey() {
             Keep these inputs close so the model speaks to your situation.
           </p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Select
-            label="Residency"
-            value={profile.residency}
-            onChange={(value) =>
-              updateProfile({ residency: value as SellerProfile["residency"] })
-            }
-          >
-            <option value="CA">Canada</option>
-            <option value="US">United States</option>
-            <option value="GB">United Kingdom</option>
-          </Select>
-          <Select
-            label="Marketplace"
-            value={profile.marketplaces[0]}
-            onChange={(value) =>
-              updateProfile({ marketplaces: [value as Marketplace] })
-            }
-          >
-            {MARKETPLACES.map((marketplace) => (
-              <option key={marketplace}>{marketplace}</option>
-            ))}
-          </Select>
-          <Field
-            label={`Capital (${currency})`}
-            value={capitalText}
-            onChange={(value) => {
-              setCapitalText(value)
-              updateProfile({ capital: positive(value, 0) })
-            }}
-          />
-          <Field
-            label="Minimum ROI (%)"
-            value={minRoiText}
-            onChange={(value) => {
-              setMinRoiText(value)
-              updateProfile({ minRoi: positive(value, 0) / 100 })
-            }}
-          />
+            <Select
+              label="Residency"
+              value={profile.residency}
+              onChange={(value) =>
+                updateProfile({
+                  residency: value as SellerProfile["residency"],
+                })
+              }
+            >
+              <option value="CA">Canada</option>
+              <option value="US">United States</option>
+              <option value="GB">United Kingdom</option>
+            </Select>
+            <Select
+              label="Marketplace"
+              value={profile.marketplaces[0]}
+              onChange={(value) =>
+                updateProfile({ marketplaces: [value as Marketplace] })
+              }
+            >
+              {MARKETPLACES.map((marketplace) => (
+                <option key={marketplace}>{marketplace}</option>
+              ))}
+            </Select>
+            <Field
+              label={`Capital (${currency})`}
+              value={capitalText}
+              onChange={(value) => {
+                setCapitalText(value)
+                updateProfile({ capital: positive(value, 0) })
+              }}
+            />
+            <Field
+              label="Minimum ROI (%)"
+              value={minRoiText}
+              onChange={(value) => {
+                setMinRoiText(value)
+                updateProfile({ minRoi: positive(value, 0) / 100 })
+              }}
+            />
           </div>
         </Card>
       </details>
@@ -187,7 +193,10 @@ export function Journey() {
                 <div>
                   <Overline>{trackTemplate(move.track).name}</Overline>
                   <h3 className="mt-1 text-lg font-semibold">{move.name}</h3>
-                  <p className="mt-2 text-sm" style={{ color: "var(--text-muted)" }}>
+                  <p
+                    className="mt-2 text-sm"
+                    style={{ color: "var(--text-muted)" }}
+                  >
                     {milestoneDescription(move.key)}
                   </p>
                 </div>
@@ -201,7 +210,10 @@ export function Journey() {
                   ))}
                 </div>
               ) : (
-                <Module guidance={resolveGuidance(move.key, move.marketplace)} onComplete={completeMove} />
+                <Module
+                  guidance={resolveGuidance(move.key, move.marketplace)}
+                  onComplete={completeMove}
+                />
               )}
             </Card>
           ) : (
@@ -246,7 +258,11 @@ export function Journey() {
                 Change assumptions
               </summary>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <Field label="Turns per year" value={turns} onChange={setTurns} />
+                <Field
+                  label="Turns per year"
+                  value={turns}
+                  onChange={setTurns}
+                />
                 <Field
                   label="Reinvest rate (%)"
                   value={reinvest}
@@ -402,7 +418,10 @@ function Module({
         <ol className="mt-2 grid gap-2 text-sm">
           {guidance.steps.map((step, index) => (
             <li key={step}>
-              <span className="data mr-2" style={{ color: "var(--text-muted)" }}>
+              <span
+                className="data mr-2"
+                style={{ color: "var(--text-muted)" }}
+              >
                 {index + 1}.
               </span>
               {step}

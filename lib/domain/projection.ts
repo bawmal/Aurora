@@ -33,7 +33,10 @@ export function projectYear(inputs: ProjectionInputs): Projection {
   return project(inputs, Math.round(inputs.turnsPerYear))
 }
 
-export function project(inputs: ProjectionInputs, turnCount: number): Projection {
+export function project(
+  inputs: ProjectionInputs,
+  turnCount: number,
+): Projection {
   if (inputs.turnsPerYear <= 0) throw new Error("turnsPerYear must be positive")
 
   const turns: ProjectionTurn[] = []
@@ -96,12 +99,17 @@ export function reachability(
       runRateAtDeadline: atDeadline,
       targetMonthlyProfit,
       monthsToTarget: null,
-      workings: [...workings, "no profit target set, so there is nothing to compare against"],
+      workings: [
+        ...workings,
+        "no profit target set, so there is nothing to compare against",
+      ],
     }
   }
 
   if (atDeadline >= targetMonthlyProfit) {
-    workings.push(`target of ${money(currency, targetMonthlyProfit)} a month is reached inside the timeline`)
+    workings.push(
+      `target of ${money(currency, targetMonthlyProfit)} a month is reached inside the timeline`,
+    )
     return {
       verdict: "reachable",
       runRateAtDeadline: atDeadline,
@@ -127,7 +135,10 @@ export function reachability(
   }
 }
 
-function monthsToReach(inputs: ProjectionInputs, targetMonthlyProfit: number): number | null {
+function monthsToReach(
+  inputs: ProjectionInputs,
+  targetMonthlyProfit: number,
+): number | null {
   const step = monthsPerTurn(inputs.turnsPerYear)
   for (let turn = 1; turn * step <= HORIZON_MONTHS; turn++) {
     if (project(inputs, turn).monthlyRunRate >= targetMonthlyProfit) {
@@ -142,5 +153,5 @@ function money(currency: Currency, n: number): string {
 }
 
 function pct(n: number): string {
-  return `${Math.round(n * 100)}%`
+  return `${Math.round(n * 1000) / 10}%`
 }

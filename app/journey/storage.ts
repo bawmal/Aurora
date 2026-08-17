@@ -94,6 +94,18 @@ export function readJourneyState(): StoredState {
   return parseJourneyState(window.localStorage.getItem(JOURNEY_STORAGE_KEY))
 }
 
+export function hasStoredProfile(): boolean {
+  if (typeof window === "undefined") return false
+  try {
+    const raw = window.localStorage.getItem(JOURNEY_STORAGE_KEY)
+    if (!raw) return false
+    const value = JSON.parse(raw) as Partial<StoredState>
+    return isProfile(value.profile)
+  } catch {
+    return false
+  }
+}
+
 export function writeJourneyState(
   profile: SellerProfile,
   progress: JourneyProgress,
