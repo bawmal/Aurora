@@ -40,7 +40,7 @@ export const MODULE_GUIDANCE: Record<string, ModuleGuidance> = {
     doneWhen: "I have decided how I am trading, and I can say why",
     pitfall:
       "Incorporating first because it sounds more professional. A company you do not need costs you filings, fees and a year of admin before you have sold anything.",
-    duration: "An evening of thinking, not a project",
+    duration: "an evening of thinking, not a project",
   },
   fd_business_email: {
     steps: [
@@ -51,7 +51,7 @@ export const MODULE_GUIDANCE: Record<string, ModuleGuidance> = {
     doneWhen: "I have sent and received mail on my own domain",
     pitfall:
       "Registering with a free mailbox and planning to move later. Suppliers screen on this, and you cannot un-send a first impression.",
-    duration: "Under an hour, about the cost of a coffee a month",
+    duration: "under an hour, about the cost of a coffee a month",
   },
   fd_banking: {
     steps: [
@@ -62,7 +62,7 @@ export const MODULE_GUIDANCE: Record<string, ModuleGuidance> = {
     doneWhen: "My first business expense left an account with only business money in it",
     pitfall:
       "Buying your first few units on a personal card 'just to get started'. Untangling mixed spending later is the single most common bookkeeping mess, and you pay someone by the hour to fix it.",
-    duration: "Days, if the bank wants documents",
+    duration: "days, if the bank wants documents",
   },
 
   // ------------------------------------------------------------- marketplace
@@ -75,7 +75,7 @@ export const MODULE_GUIDANCE: Record<string, ModuleGuidance> = {
     doneWhen: "I can sign in to {marketplace} Seller Central",
     pitfall:
       "A name or address that differs by a word from your documents. Amazon matches these literally, and a mismatch turns a same-day signup into a fortnight of appeals.",
-    duration: "An hour to apply",
+    duration: "an hour to apply",
   },
   mk_verified: {
     steps: [
@@ -86,7 +86,7 @@ export const MODULE_GUIDANCE: Record<string, ModuleGuidance> = {
     doneWhen: "{marketplace} shows my account as verified",
     pitfall:
       "Reading the wait as rejection and opening a second account. Duplicate accounts are the fastest way to lose both.",
-    duration: "Days to a few weeks, and mostly out of your hands",
+    duration: "days to a few weeks, and mostly out of your hands",
   },
   mk_first_disbursement: {
     steps: [
@@ -97,7 +97,7 @@ export const MODULE_GUIDANCE: Record<string, ModuleGuidance> = {
     doneWhen: "Money from {marketplace} has landed in my business account",
     pitfall:
       "Assuming a held first payout is a problem. New accounts are routinely held for a full settlement cycle; that is the plumbing working, not failing.",
-    duration: "Two to four weeks after your first sale",
+    duration: "two to four weeks after your first sale",
   },
 
   // -------------------------------------------------------------- retail arb
@@ -110,7 +110,7 @@ export const MODULE_GUIDANCE: Record<string, ModuleGuidance> = {
     doneWhen: "I have scanned one product in a shop and recorded what I found",
     pitfall:
       "Recording only the winners. The rejects are the data that teaches you what a winner looks like, and they are free.",
-    duration: "An afternoon",
+    duration: "an afternoon",
   },
   ra_first_analysis: {
     steps: [
@@ -121,7 +121,7 @@ export const MODULE_GUIDANCE: Record<string, ModuleGuidance> = {
     doneWhen: "I have analysed a product and understood why it came out BUY, WATCH or PASS",
     pitfall:
       "Trusting the verdict and skipping the workings. The verdict is only as good as the assumptions above it, and those are yours.",
-    duration: "Minutes",
+    duration: "minutes",
     verified: true,
   },
   ra_ungated: {
@@ -133,7 +133,7 @@ export const MODULE_GUIDANCE: Record<string, ModuleGuidance> = {
     doneWhen: "The category is open in my account and I can list in it",
     pitfall:
       "Submitting a till receipt. It is not an invoice in any marketplace, and repeated rejected applications make the next one harder.",
-    duration: "Days to weeks, depending on the supplier",
+    duration: "days to weeks, depending on the supplier",
   },
   ra_first_buy: {
     steps: [
@@ -144,7 +144,7 @@ export const MODULE_GUIDANCE: Record<string, ModuleGuidance> = {
     doneWhen: "I have bought units of an analysed product at or under my buy-below price",
     pitfall:
       "Paying slightly over because the deal is nearly good. Buy-below already contains your minimum ROI; going over it does not shave your profit, it removes the margin you set as the floor.",
-    duration: "One sourcing trip",
+    duration: "one sourcing trip",
   },
   ra_first_shipment: {
     steps: [
@@ -155,7 +155,7 @@ export const MODULE_GUIDANCE: Record<string, ModuleGuidance> = {
     doneWhen: "My units are checked in and sellable at the fulfilment centre",
     pitfall:
       "Treating prep and inbound freight as rounding errors. They are the per-unit costs that quietly turn a 30% ROI buy into a 12% one, and the analyser only knows them if you tell it.",
-    duration: "A day to pack, one to two weeks to check in",
+    duration: "a day to pack, one to two weeks to check in",
   },
   ra_first_sale: {
     steps: [
@@ -166,7 +166,7 @@ export const MODULE_GUIDANCE: Record<string, ModuleGuidance> = {
     doneWhen: "A unit has sold and I have compared the real net against my projection",
     pitfall:
       "Chasing the buy box down. A price war you start costs more than the week you would have waited.",
-    duration: "Days to weeks after check-in",
+    duration: "days to weeks after check-in",
   },
   ra_repeatable: {
     steps: [
@@ -177,7 +177,7 @@ export const MODULE_GUIDANCE: Record<string, ModuleGuidance> = {
     doneWhen: "I have run four weeks of sourcing without missing a session",
     pitfall:
       "Sourcing only when stock runs low. A funnel you run when it is calm is what stops you buying badly when it is not.",
-    duration: "Four weeks, by definition",
+    duration: "four weeks, by definition",
   },
 
   // ---------------------------------------------------------------- wholesale
@@ -190,7 +190,7 @@ export const MODULE_GUIDANCE: Record<string, ModuleGuidance> = {
     doneWhen: "My domain loads a page that tells a supplier who I am",
     pitfall:
       "Spending a fortnight on a storefront nobody buys from. Suppliers look for two minutes to confirm you exist.",
-    duration: "An evening",
+    duration: "an evening",
   },
   ws_find_brands: {
     steps: [
@@ -201,7 +201,7 @@ export const MODULE_GUIDANCE: Record<string, ModuleGuidance> = {
     doneWhen: "I have a shortlist of brands whose numbers work at wholesale cost",
     pitfall:
       "Approaching brands you like rather than brands that clear your ROI. Enthusiasm does not survive the price list.",
-    duration: "A few evenings",
+    duration: "a few evenings",
   },
   ws_outreach: {
     steps: [
@@ -212,7 +212,7 @@ export const MODULE_GUIDANCE: Record<string, ModuleGuidance> = {
     doneWhen: "I have sent a first approach to a real person at a target brand",
     pitfall:
       "A long email about your ambitions, or asking for a discount before you have an account. Both read as a hobbyist and get filed.",
-    duration: "An hour per brand",
+    duration: "an hour per brand",
   },
   ws_account_approved: {
     steps: [
@@ -223,7 +223,7 @@ export const MODULE_GUIDANCE: Record<string, ModuleGuidance> = {
     doneWhen: "I have an account number and written terms from a supplier",
     pitfall:
       "Not asking about marketplace permission. Discovering after your first order that the brand forbids Amazon leaves you holding stock you cannot list.",
-    duration: "One to four weeks",
+    duration: "one to four weeks",
   },
   ws_first_order: {
     steps: [
@@ -234,6 +234,6 @@ export const MODULE_GUIDANCE: Record<string, ModuleGuidance> = {
     doneWhen: "I have placed a wholesale order priced against my own numbers",
     pitfall:
       "Buying to the minimum order value across lines that do not qualify. A supplier's minimum is their problem to solve, not a reason to buy stock that loses money.",
-    duration: "Days to place, weeks to arrive",
+    duration: "days to place, weeks to arrive",
   },
 }

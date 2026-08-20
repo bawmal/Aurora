@@ -14,6 +14,7 @@ import {
   resolveGate,
   resolveGuidance,
   isTrackOpen,
+  substituteMarketplace,
   unlockProgress,
 } from "@/lib/domain/journey"
 import { projectYear, reachability } from "@/lib/domain/projection"
@@ -198,7 +199,7 @@ export function Journey() {
                 <div className="mt-5 grid gap-3">
                   <Overline>Clear these gates</Overline>
                   {move.blockedBy.map((gate) => (
-                    <Gate key={gate} id={gate} />
+                    <Gate key={gate} id={gate} marketplace={move.marketplace} />
                   ))}
                 </div>
               ) : (
@@ -364,13 +365,23 @@ export function Journey() {
   )
 }
 
-function Gate({ id }: { id: string }) {
+function Gate({
+  id,
+  marketplace,
+}: {
+  id: string
+  marketplace?: Marketplace | null
+}) {
   const gate = resolveGate(id)
   if (!gate) return <p className="text-sm">{id}</p>
   if (gate.kind === "milestone")
     return (
       <p className="text-sm">
-        Complete <strong>{gate.milestone.name}</strong> first.
+        Complete{" "}
+        <strong>
+          {substituteMarketplace(gate.milestone.name, marketplace ?? null)}
+        </strong>{" "}
+        first.
       </p>
     )
   return <Requirement requirement={gate.requirement} />
@@ -554,7 +565,7 @@ function Track({
                   </summary>
                   <div className="mt-2 grid gap-2">
                     {state.blockedBy.map((gate) => (
-                      <Gate key={gate} id={gate} />
+                      <Gate key={gate} id={gate} marketplace={state.marketplace} />
                     ))}
                   </div>
                 </details>

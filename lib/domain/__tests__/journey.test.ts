@@ -17,6 +17,7 @@ import {
   recordAnalysis,
   resolveGate,
   resolveGuidance,
+  substituteMarketplace,
   unlockProgress,
 } from "../journey"
 import type { JourneyProgress, SellerProfile } from "../types"
@@ -62,6 +63,16 @@ describe("curriculum integrity", () => {
     expect(guidance?.steps[0]).toContain("Amazon UK")
     expect(guidance?.doneWhen).toContain("Amazon UK")
     expect(resolveGuidance("missing")).toBeNull()
+  })
+
+  it("substitutes the marketplace in dependency gate labels", () => {
+    const gate = resolveGate("mk_account")
+    expect(gate?.kind).toBe("milestone")
+    if (gate?.kind === "milestone") {
+      expect(substituteMarketplace(gate.milestone.name, "amazon.co.uk")).toBe(
+        "Create your Amazon UK selling account",
+      )
+    }
   })
 
   it("has no dependency pointing at a milestone that does not exist", () => {
