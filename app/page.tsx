@@ -6,6 +6,9 @@ export default function Home() {
       <header className="mb-10">
         <div className="flex items-baseline gap-4">
           <h1 className="text-2xl font-semibold tracking-tight">What is this worth to you?</h1>
+          <a href="/start" className="text-sm" style={{ color: "var(--accent)" }}>
+            Start with the opportunity
+          </a>
           <a href="/journey" className="text-sm" style={{ color: "var(--accent)" }}>
             Your journey
           </a>

@@ -70,6 +70,8 @@ export function Journey() {
     setProgress(stored.progress)
     setCapitalText(String(stored.profile.capital))
     setMinRoiText(formatPercentage(stored.profile.minRoi))
+    setTargetProfit(String(stored.profile.targetMonthlyProfit ?? 3000))
+    setTimeline(String(stored.profile.timelineMonths ?? 12))
     setProfileOpen(!hasStoredProfile())
     setLoaded(true)
   }, [])
@@ -257,12 +259,18 @@ export function Journey() {
                 <Field
                   label="Target monthly profit"
                   value={targetProfit}
-                  onChange={setTargetProfit}
+                  onChange={(value) => {
+                    setTargetProfit(value)
+                    updateProfile({ targetMonthlyProfit: positive(value, 0) })
+                  }}
                 />
                 <Field
                   label="Timeline (months)"
                   value={timeline}
-                  onChange={setTimeline}
+                  onChange={(value) => {
+                    setTimeline(value)
+                    updateProfile({ timelineMonths: positive(value, 0) })
+                  }}
                 />
               </div>
             </details>

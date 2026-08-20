@@ -50,6 +50,9 @@ describe("journey storage validation", () => {
     )
 
     expect(state.profile).toMatchObject(profile)
+    expect(state.profile.targetMonthlyProfit).toBe(3000)
+    expect(state.profile.timelineMonths).toBe(12)
+    expect(state.profile.defaultUnitCost).toBe(12)
     expect(state.progress.analysedAsins).toEqual([])
     expect(state.progress.productsAnalysed).toBe(0)
   })

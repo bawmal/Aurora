@@ -143,6 +143,11 @@ export interface SellerProfile {
   /** Minimum acceptable ROI as a fraction: 0.3 is 30%. */
   minRoi: number
   capital: number
+  /** Last seller-entered invoice cost used by the analyser. */
+  defaultUnitCost?: number
+  /** The goal the seller chose before entering the journey. */
+  targetMonthlyProfit?: number
+  timelineMonths?: number
   /** Per-unit costs the seller pays on top of the invoice price. */
   costs: LandedCostInputs
   completedRequirements: string[]

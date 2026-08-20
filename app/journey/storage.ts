@@ -13,6 +13,8 @@ export const DEFAULT_PROFILE: SellerProfile = {
   stage: "pre-account",
   minRoi: 0.3,
   capital: 2000,
+  targetMonthlyProfit: 3000,
+  timelineMonths: 12,
   costs: {
     inboundPerUnit: 0,
     prepPerUnit: 0,
@@ -44,7 +46,16 @@ export function isProfile(value: unknown): value is SellerProfile {
     typeof profile.capital === "number" &&
     Number.isFinite(profile.capital) &&
     typeof profile.minRoi === "number" &&
-    Number.isFinite(profile.minRoi)
+    Number.isFinite(profile.minRoi) &&
+    (profile.targetMonthlyProfit === undefined ||
+      (typeof profile.targetMonthlyProfit === "number" &&
+        Number.isFinite(profile.targetMonthlyProfit))) &&
+    (profile.timelineMonths === undefined ||
+      (typeof profile.timelineMonths === "number" &&
+        Number.isFinite(profile.timelineMonths))) &&
+    (profile.defaultUnitCost === undefined ||
+      (typeof profile.defaultUnitCost === "number" &&
+        Number.isFinite(profile.defaultUnitCost)))
   )
 }
 
@@ -73,7 +84,14 @@ export function parseJourneyState(raw: string | null): StoredState {
       return { profile: DEFAULT_PROFILE, progress: NO_PROGRESS }
     }
     return {
-      profile: { ...DEFAULT_PROFILE, ...value.profile },
+      profile: {
+        ...DEFAULT_PROFILE,
+        ...value.profile,
+        targetMonthlyProfit:
+          value.profile.targetMonthlyProfit ?? DEFAULT_PROFILE.targetMonthlyProfit,
+        timelineMonths: value.profile.timelineMonths ?? DEFAULT_PROFILE.timelineMonths,
+        defaultUnitCost: value.profile.defaultUnitCost ?? 12,
+      },
       progress: {
         ...NO_PROGRESS,
         ...value.progress,

@@ -2,18 +2,28 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { review } from "@/lib/domain/review"
-import { recordAnalysisInStorage } from "./journey/storage"
+import {
+  DEFAULT_PROFILE,
+  readJourneyState,
+  recordAnalysisInStorage,
+  writeJourneyState,
+} from "./journey/storage"
 import type {
   DataQuality,
   MarketSignals,
   Marketplace,
   ProductInput,
+  Residency,
   SellerProfile,
   SignalState,
   Verdict,
   WeightTier,
 } from "@/lib/domain/types"
-import { DEFAULT_CRITERIA, MARKETPLACE_CURRENCY } from "@/lib/domain/types"
+import {
+  DEFAULT_CRITERIA,
+  MARKETPLACE_CURRENCY,
+  MARKETPLACE_LABELS,
+} from "@/lib/domain/types"
 import { barHeights, describeSeason } from "@/lib/domain/seasonality"
 import type { SeasonalProfile } from "@/lib/domain/seasonality"
 
@@ -76,7 +86,9 @@ const CATEGORIES = [
 ]
 
 export function Analyser() {
-  const [marketplace, setMarketplace] = useState<Marketplace>("amazon.ca")
+  const [profile, setProfile] = useState(DEFAULT_PROFILE)
+  const [profileLoaded, setProfileLoaded] = useState(false)
+  const marketplace = profile.marketplaces[0]
   const [category, setCategory] = useState("toys-games")
   const [weightTier, setWeightTier] = useState<WeightTier>("standard")
   const [salePrice, setSalePrice] = useState("39.99")
@@ -103,6 +115,22 @@ export function Analyser() {
   const analysisRecorded = useRef(false)
 
   const currency = MARKETPLACE_CURRENCY[marketplace]
+
+  useEffect(() => {
+    const stored = readJourneyState()
+    setProfile(stored.profile)
+    setUnitCost(String(stored.profile.defaultUnitCost ?? 12))
+    setMinRoi(formatPercentage(stored.profile.minRoi))
+    setPrep(String(stored.profile.costs.prepPerUnit))
+    setInbound(String(stored.profile.costs.inboundPerUnit))
+    setDuty(String(stored.profile.costs.dutyRate * 100))
+    setReturns(String(stored.profile.costs.returnsRate * 100))
+    setProfileLoaded(true)
+  }, [])
+
+  useEffect(() => {
+    if (profileLoaded) writeJourneyState(profile, readJourneyState().progress)
+  }, [profile, profileLoaded])
 
   const clearLookupResult = useCallback(() => {
     setTitle(null)
@@ -166,23 +194,17 @@ export function Analyser() {
       weightTier,
       unitCost: num(unitCost),
     }
-    const profile: SellerProfile = {
-      id: "anonymous",
-      residency: marketplace === "amazon.co.uk" ? "GB" : marketplace === "amazon.com" ? "US" : "CA",
-      entityJurisdiction: null,
+    const sellerProfile: SellerProfile = {
+      ...profile,
       marketplaces: [marketplace],
-      stage: "pre-account",
       minRoi: num(minRoi) / 100,
-      capital: 0,
       costs: {
+        ...profile.costs,
         inboundPerUnit: num(inbound),
         prepPerUnit: num(prep),
-        irrecoverableTaxRate: 0,
         dutyRate: num(duty) / 100,
         returnsRate: num(returns) / 100,
       },
-      completedRequirements: [],
-      provenance: {},
     }
     const signals: MarketSignals = {
       salesRank: optional(salesRank),
@@ -203,13 +225,14 @@ export function Analyser() {
       historyDays,
       signalAgeDays: 0,
     }
-    return review(product, profile, { ...DEFAULT_CRITERIA, minRoi: num(minRoi) / 100 }, signals, quality)
+    return review(product, sellerProfile, { ...DEFAULT_CRITERIA, minRoi: num(minRoi) / 100 }, signals, quality)
   }, [
     asin,
     live,
     season,
     historyDays,
     marketplace,
+    profile,
     category,
     weightTier,
     salePrice,
@@ -273,10 +296,35 @@ export function Analyser() {
             </span>
           )}
         </label>
-        <Select label="Marketplace" value={marketplace} onChange={(v) => setMarketplace(v as Marketplace)}>
-          <option value="amazon.ca">amazon.ca</option>
-          <option value="amazon.com">amazon.com</option>
-          <option value="amazon.co.uk">amazon.co.uk</option>
+        <Select
+          label="Marketplace"
+          value={marketplace}
+          onChange={(v) =>
+            setProfile((current) => ({
+              ...current,
+              marketplaces: [v as Marketplace],
+            }))
+          }
+        >
+          {Object.entries(MARKETPLACE_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </Select>
+        <Select
+          label="Residency"
+          value={profile.residency}
+          onChange={(value) =>
+            setProfile((current) => ({
+              ...current,
+              residency: value as Residency,
+            }))
+          }
+        >
+          <option value="CA">Canada</option>
+          <option value="US">United States</option>
+          <option value="GB">United Kingdom</option>
         </Select>
         <Select label="Category" value={category} onChange={setCategory}>
           {categoryOptions(category).map((c) => (
@@ -299,18 +347,69 @@ export function Analyser() {
           onChange={(value) => {
             setUnitCost(value)
             setUnitCostEdited(true)
+            setProfile((current) => ({
+              ...current,
+              defaultUnitCost: num(value),
+            }))
           }}
         />
-        <Field label="Minimum ROI (%)" value={minRoi} onChange={setMinRoi} />
+        <Field
+          label="Minimum ROI (%)"
+          value={minRoi}
+          onChange={(value) => {
+            setMinRoi(value)
+            setProfile((current) => ({ ...current, minRoi: num(value) / 100 }))
+          }}
+        />
 
         <Fieldset
           legend="Landed costs"
           note="Leave these at zero and the answer will flatter you. They are the difference between a 30% target and a 15% outcome."
         >
-          <Field label={`Prep per unit (${currency})`} value={prep} onChange={setPrep} />
-          <Field label={`Inbound freight per unit (${currency})`} value={inbound} onChange={setInbound} />
-          <Field label="Duty (%)" value={duty} onChange={setDuty} />
-          <Field label="Returns allowance (%)" value={returns} onChange={setReturns} />
+          <Field
+            label={`Prep per unit (${currency})`}
+            value={prep}
+            onChange={(value) => {
+              setPrep(value)
+              setProfile((current) => ({
+                ...current,
+                costs: { ...current.costs, prepPerUnit: num(value) },
+              }))
+            }}
+          />
+          <Field
+            label={`Inbound freight per unit (${currency})`}
+            value={inbound}
+            onChange={(value) => {
+              setInbound(value)
+              setProfile((current) => ({
+                ...current,
+                costs: { ...current.costs, inboundPerUnit: num(value) },
+              }))
+            }}
+          />
+          <Field
+            label="Duty (%)"
+            value={duty}
+            onChange={(value) => {
+              setDuty(value)
+              setProfile((current) => ({
+                ...current,
+                costs: { ...current.costs, dutyRate: num(value) / 100 },
+              }))
+            }}
+          />
+          <Field
+            label="Returns allowance (%)"
+            value={returns}
+            onChange={(value) => {
+              setReturns(value)
+              setProfile((current) => ({
+                ...current,
+                costs: { ...current.costs, returnsRate: num(value) / 100 },
+              }))
+            }}
+          />
         </Fieldset>
 
         <Fieldset
@@ -601,6 +700,10 @@ function categoryOptions(current: string): string[] {
 function num(value: string): number {
   const parsed = Number.parseFloat(value)
   return Number.isFinite(parsed) ? parsed : 0
+}
+
+function formatPercentage(value: number): string {
+  return String(Math.round(value * 10000) / 100)
 }
 
 /** Blank means not read, which is different from zero. */
