@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
 import { toAnalysisInput } from "@/lib/analysis/from-keepa"
 import { Panel } from "@/app/start/start"
+import { showCostRow } from "@/app/start/start"
 import { analyse } from "../product"
 import { parseSeries } from "@/lib/keepa/parse"
 import { STAT } from "@/lib/keepa/types"
@@ -89,5 +90,10 @@ describe("start navigation", () => {
     )
     expect(html).toContain("One product isn’t a business")
     expect(html).not.toContain("&rsquo;")
+  })
+
+  it("hides zero-valued arithmetic cost rows", () => {
+    expect(showCostRow(0)).toBe(false)
+    expect(showCostRow(1.1)).toBe(true)
   })
 })

@@ -192,34 +192,73 @@ export function Start() {
           onNext={() => setPanel(nextStartPanel(panel))}
           onBack={() => setPanel(panel - 1)}
         >
-          <div className="data grid gap-2 text-sm">
-            <p>Your cost: {demoCurrency} {START_DEMO.unitCost.toFixed(2)}</p>
-            <p>Inbound freight: {demoCurrency} {START_DEMO.inboundPerUnit.toFixed(2)}</p>
-            <p>Prep: {demoCurrency} {START_DEMO.prepPerUnit.toFixed(2)}</p>
-            <p>
-              Duty: {demoCurrency}{" "}
-              {(START_DEMO.unitCost * START_DEMO.dutyRate).toFixed(2)}
-            </p>
-            <p>
-              Returns allowance: {demoCurrency}{" "}
-              {START_DEMO.returnsAllowance.toFixed(2)}
-            </p>
-            <p>Sale price: {demoCurrency} {START_DEMO.price.toFixed(2)}</p>
-            <p>Amazon&rsquo;s fees: {demoCurrency} {START_DEMO.fees.toFixed(2)}</p>
-            <p>Net proceeds: {demoCurrency} {START_DEMO.netProceeds.toFixed(2)}</p>
-            <p>
-              Profit per unit: {demoCurrency}{" "}
-              {START_DEMO.profitPerUnit.toFixed(2)}
-            </p>
-            <p>ROI: {(START_DEMO.roi * 100).toFixed(1)}%</p>
-            <p>
-              {START_DEMO.unitsPerMonth.toFixed(1)} units × {demoCurrency}{" "}
-              {START_DEMO.profitPerUnit.toFixed(2)} = {demoCurrency}{" "}
-              {START_DEMO.monthlyProfit.toFixed(2)} a month
-            </p>
+          <div className="grid gap-5">
+            <ArithmeticGroup title="What comes in">
+              <ArithmeticLine
+                label="Sale price"
+                value={`${demoCurrency} ${START_DEMO.price.toFixed(2)}`}
+              />
+              <ArithmeticLine
+                label="− Amazon’s fees"
+                value={`${demoCurrency} ${START_DEMO.fees.toFixed(2)}`}
+              />
+              {showCostRow(START_DEMO.returnsAllowance) && (
+                <ArithmeticLine
+                  label="− Returns allowance"
+                  value={`${demoCurrency} ${START_DEMO.returnsAllowance.toFixed(2)}`}
+                />
+              )}
+              <ArithmeticTotal
+                label="Net proceeds"
+                value={`${demoCurrency} ${START_DEMO.netProceeds.toFixed(2)}`}
+              />
+            </ArithmeticGroup>
+
+            <ArithmeticGroup title="What goes out">
+              <ArithmeticLine
+                label="Invoice price"
+                value={`${demoCurrency} ${START_DEMO.unitCost.toFixed(2)}`}
+              />
+              {showCostRow(START_DEMO.inboundPerUnit) && (
+                <ArithmeticLine
+                  label="+ Inbound freight"
+                  value={`${demoCurrency} ${START_DEMO.inboundPerUnit.toFixed(2)}`}
+                />
+              )}
+              {showCostRow(START_DEMO.prepPerUnit) && (
+                <ArithmeticLine
+                  label="+ Prep"
+                  value={`${demoCurrency} ${START_DEMO.prepPerUnit.toFixed(2)}`}
+                />
+              )}
+              {showCostRow(START_DEMO.unitCost * START_DEMO.dutyRate) && (
+                <ArithmeticLine
+                  label="+ Duty"
+                  value={`${demoCurrency} ${(START_DEMO.unitCost * START_DEMO.dutyRate).toFixed(2)}`}
+                />
+              )}
+              <ArithmeticTotal
+                label="Landed cost"
+                value={`${demoCurrency} ${START_DEMO.landedCost.toFixed(2)}`}
+              />
+            </ArithmeticGroup>
+
+            <div className="border-t pt-4" style={{ borderColor: "var(--hairline)" }}>
+              <p className="data text-lg font-semibold">
+                Profit per unit: {demoCurrency} {START_DEMO.profitPerUnit.toFixed(2)}
+              </p>
+              <p className="data mt-1 text-sm">
+                ROI: {(START_DEMO.roi * 100).toFixed(1)}%
+              </p>
+              <p className="data mt-3 text-sm">
+                {START_DEMO.unitsPerMonth.toFixed(1)} units × {demoCurrency}{" "}
+                {START_DEMO.profitPerUnit.toFixed(2)} = {demoCurrency}{" "}
+                {START_DEMO.monthlyProfit.toFixed(2)} a month
+              </p>
+            </div>
           </div>
           <p className="mt-4 text-sm" style={{ color: "var(--text-muted)" }}>
-            Your cost is an assumption: no data source can know what you paid.
+            The invoice price is an assumption: no data source can know what you paid.
           </p>
         </Panel>
       )}
@@ -379,6 +418,46 @@ function Metric({ label, value, subdued = false }: { label: string; value: strin
       </p>
     </div>
   )
+}
+
+function ArithmeticGroup({
+  title,
+  children,
+}: {
+  title: string
+  children: React.ReactNode
+}) {
+  return (
+    <section>
+      <Overline>{title}</Overline>
+      <ul className="data mt-2 space-y-1 text-sm">{children}</ul>
+    </section>
+  )
+}
+
+function ArithmeticLine({ label, value }: { label: string; value: string }) {
+  return (
+    <li className="flex justify-between gap-4">
+      <span>{label}</span>
+      <span>{value}</span>
+    </li>
+  )
+}
+
+function ArithmeticTotal({ label, value }: { label: string; value: string }) {
+  return (
+    <li
+      className="mt-2 flex justify-between gap-4 border-t pt-2 font-medium"
+      style={{ borderColor: "var(--hairline)" }}
+    >
+      <span>{label}</span>
+      <span>{value}</span>
+    </li>
+  )
+}
+
+export function showCostRow(value: number): boolean {
+  return value !== 0
 }
 
 function Card({ children }: { children: React.ReactNode }) {
