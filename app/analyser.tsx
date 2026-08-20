@@ -606,7 +606,7 @@ function SeasonCard({ season }: { season: Season }) {
           would draw the best month as the shortest bar. Each product is scaled against its own
           best month, because rank 500 in Toys and rank 500 in Electronics are different volumes.
           Green marks the months well above this product&rsquo;s own yearly average; a dashed
-          outline is a month Keepa has no data for, which is not the same as a month with no sales;
+          outline is a month with no rank data, which is not the same as a month with no sales;
           the palest bars are its dead months.
           {seasonRatio !== null && (
             <>

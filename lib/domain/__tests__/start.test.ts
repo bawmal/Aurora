@@ -10,7 +10,16 @@ import { analyse } from "../product"
 import { parseSeries } from "@/lib/keepa/parse"
 import { STAT } from "@/lib/keepa/types"
 import { START_DEMO } from "../start-demo"
-import { nextStartPanel, START_GOAL_PANEL } from "../start"
+import {
+  BuyBoxIllustration,
+  LiveListingCard,
+  OffersIllustration,
+  PortfolioIllustration,
+  SearchResultsIllustration,
+  ShareBlocksIllustration,
+  UnitSplitIllustration,
+} from "@/app/start/illustrations"
+import { nextStartPanel, START_GOAL_PANEL, START_LAST_PANEL } from "../start"
 import type { SellerProfile } from "../types"
 import type { KeepaResponse } from "@/lib/keepa/types"
 
@@ -90,6 +99,67 @@ describe("start navigation", () => {
     )
     expect(html).toContain("One product isn’t a business")
     expect(html).not.toContain("&rsquo;")
+  })
+
+  it("clamps at the last panel", () => {
+    expect(nextStartPanel(START_LAST_PANEL)).toBe(START_LAST_PANEL)
+    expect(START_GOAL_PANEL).toBeLessThan(START_LAST_PANEL)
+  })
+
+  it("labels every teaching illustration as an illustration", () => {
+    const illustrations = [
+      React.createElement(SearchResultsIllustration, {
+        currency: "CAD",
+        items: [{ name: "Drill", price: "99.00" }],
+      }),
+      React.createElement(BuyBoxIllustration, {
+        currency: "CAD",
+        price: "31.99",
+        otherSellers: 18,
+      }),
+      React.createElement(OffersIllustration, {
+        currency: "CAD",
+        rows: [{ seller: "You", price: "31.99", share: 5, you: true }],
+        hiddenSellers: 18,
+        demandPerMonth: 300,
+      }),
+      React.createElement(ShareBlocksIllustration, {
+        sellers: 20,
+        unitsEach: "15",
+      }),
+      React.createElement(UnitSplitIllustration, {
+        currency: "CAD",
+        salePrice: 31.99,
+        segments: [
+          { label: "Fees", value: 11.68, tone: "fees" },
+          { label: "Cost", value: 14.6, tone: "cost" },
+          { label: "Profit", value: 4.75, tone: "profit" },
+        ],
+      }),
+      React.createElement(PortfolioIllustration, {
+        currency: "CAD",
+        products: 15,
+        perProduct: 71.25,
+      }),
+    ]
+
+    for (const illustration of illustrations) {
+      const html = renderToStaticMarkup(illustration)
+      const caption = html.match(/<figcaption[^>]*>(.*?)<\/figcaption>/)?.[1]
+      expect(caption).toBeDefined()
+      expect(caption).toMatch(/Illustration|split to scale/)
+    }
+  })
+
+  it("does not label the live listing as an illustration", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(
+        LiveListingCard,
+        { title: "A real listing", asin: "B000000000", readDate: "2026-08-13" },
+        React.createElement("div"),
+      ),
+    )
+    expect(html).not.toContain("Illustration")
   })
 
   it("hides zero-valued arithmetic cost rows", () => {

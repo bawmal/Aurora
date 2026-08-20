@@ -3,7 +3,20 @@
 import React, { useEffect, useMemo, useState } from "react"
 import { projectYear, reachability } from "@/lib/domain/projection"
 import { START_DEMO } from "@/lib/domain/start-demo"
-import { nextStartPanel } from "@/lib/domain/start"
+import {
+  START_GOAL_PANEL,
+  START_LAST_PANEL,
+  nextStartPanel,
+} from "@/lib/domain/start"
+import {
+  BuyBoxIllustration,
+  LiveListingCard,
+  OffersIllustration,
+  PortfolioIllustration,
+  SearchResultsIllustration,
+  ShareBlocksIllustration,
+  UnitSplitIllustration,
+} from "./illustrations"
 import {
   MARKETPLACE_CURRENCY,
   MARKETPLACE_LABELS,
@@ -18,7 +31,31 @@ import {
   writeJourneyState,
 } from "../journey/storage"
 
-const PANEL_COUNT = 8
+const PANEL_COUNT = START_LAST_PANEL + 1
+
+/**
+ * Four unrelated products, priced plausibly, standing in for a search page.
+ * They are illustration only: nothing here is read from a marketplace.
+ */
+const SEARCH_RESULTS = [
+  { name: "20V drill/driver kit, 2 batteries", price: "99.00" },
+  { name: "20V drill and impact driver combo", price: "139.00" },
+  { name: "20V compact drill, tool only", price: "76.99" },
+  { name: "20V hammer drill, bare tool", price: "119.99" },
+]
+
+/**
+ * An uneven split, because that is what a real offer list looks like. The
+ * shop names are invented; naming real sellers in a teaching screen would be
+ * both unfair and stale within a week.
+ */
+const OFFER_ROWS = [
+  { seller: "Northline Supply Co", price: "31.99", share: 63 },
+  { seller: "Harbour Goods", price: "48.41", share: 11 },
+  { seller: "Maple Trade Ltd", price: "31.99", share: 9 },
+  { seller: "Clearwater Deals", price: "31.99", share: 5 },
+  { seller: "You, if you listed here", price: "31.99", share: 5, you: true },
+]
 
 export function Start() {
   const stored = useMemo(() => readJourneyState(), [])
@@ -91,7 +128,7 @@ export function Start() {
           <p className="text-sm" style={{ color: "var(--text-muted)" }}>
             A short way into the numbers
           </p>
-          {panel < 5 && (
+          {panel < START_GOAL_PANEL && (
             <button
               type="button"
               className="text-sm"
@@ -124,46 +161,100 @@ export function Start() {
       {panel === 0 && (
         <Panel
           overline="Start with the opportunity"
-          title="One product, one page — and the Buy Box"
+          title="Every product has exactly one page"
           onNext={() => setPanel(nextStartPanel(panel))}
         >
-          <p>
-            Amazon shows one listing per product. Roughly 90% of a listing&rsquo;s
-            sales go to whoever holds the Buy Box.
+          <SearchResultsIllustration currency={demoCurrency} items={SEARCH_RESULTS} />
+          <p className="mt-4">
+            Search Amazon and each result is a different product. There is no
+            page per shop: one product, one page, however many people sell it.
           </p>
           <p className="mt-3">
-            So the question is not whether people buy it. It is who gets the sale.
+            So you are never competing for attention. You are competing on one
+            page for one thing.
           </p>
         </Panel>
       )}
 
       {panel === 1 && (
         <Panel
-          overline="A real listing"
-          title="You can see the whole board"
+          overline="The Buy Box"
+          title="One box gets the sale"
           onNext={() => setPanel(nextStartPanel(panel))}
           onBack={() => setPanel(panel - 1)}
         >
-          <p className="font-medium">{START_DEMO.title}</p>
-          <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>
-            {START_DEMO.asin} · Data read {START_DEMO.readDate}
+          <BuyBoxIllustration
+            currency={demoCurrency}
+            price={START_DEMO.price.toFixed(2)}
+            otherSellers={START_DEMO.sellers - 1}
+          />
+          <p className="mt-4">
+            That highlighted panel is the Buy Box: the &ldquo;Add to cart&rdquo;
+            a shopper actually presses. Roughly 90% of a listing&rsquo;s sales go
+            through it, and only one seller holds it at any moment.
           </p>
-          <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <Metric label="Price" value={`${demoCurrency} ${START_DEMO.price.toFixed(2)}`} />
-            <Metric label="Sellers" value={String(START_DEMO.sellers)} />
-            <Metric
-              label="Estimated sales / month"
-              value={`about ${START_DEMO.demandPerMonth}`}
-            />
-            <Metric label="Marketplace" value={MARKETPLACE_LABELS[START_DEMO.marketplace]} />
-          </div>
-          <p className="mt-4 text-sm" style={{ color: "var(--text-muted)" }}>
-            This is a real read from Keepa, not an illustration.
+          <p className="mt-3">
+            Everyone else is behind &ldquo;other sellers&rdquo;, which is where
+            almost nobody clicks. So the question is not whether people buy this
+            product. It is who gets the sale.
           </p>
         </Panel>
       )}
 
       {panel === 2 && (
+        <Panel
+          overline="Behind the page"
+          title="What the page doesn’t show you"
+          onNext={() => setPanel(nextStartPanel(panel))}
+          onBack={() => setPanel(panel - 1)}
+        >
+          <OffersIllustration
+            currency={demoCurrency}
+            rows={OFFER_ROWS}
+            hiddenSellers={START_DEMO.sellers - OFFER_ROWS.length}
+            demandPerMonth={START_DEMO.demandPerMonth}
+          />
+          <p className="mt-4">
+            A shopper sees one price. Behind it sit every seller, their prices,
+            and how the box has been shared between them — plus years of sales
+            rank history that says roughly how many sell each month.
+          </p>
+          <p className="mt-3">
+            That is the whole game: numbers a shopper never sees, and you do.
+          </p>
+        </Panel>
+      )}
+
+      {panel === 3 && (
+        <Panel
+          overline="A real listing"
+          title="Here is a live one"
+          onNext={() => setPanel(nextStartPanel(panel))}
+          onBack={() => setPanel(panel - 1)}
+        >
+          <LiveListingCard
+            title={START_DEMO.title}
+            asin={START_DEMO.asin}
+            readDate={START_DEMO.readDate}
+          >
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <Metric label="Price" value={`${demoCurrency} ${START_DEMO.price.toFixed(2)}`} />
+              <Metric label="Sellers" value={String(START_DEMO.sellers)} />
+              <Metric
+                label="Sales / month"
+                value={`about ${START_DEMO.demandPerMonth}`}
+              />
+              <Metric label="Marketplace" value={MARKETPLACE_LABELS[START_DEMO.marketplace]} />
+            </div>
+          </LiveListingCard>
+          <p className="mt-4 text-sm" style={{ color: "var(--text-muted)" }}>
+            These four numbers are a real read of a live Amazon listing, not an
+            illustration. Everything that follows is arithmetic on them.
+          </p>
+        </Panel>
+      )}
+
+      {panel === 4 && (
         <Panel
           overline="Share the demand"
           title="Do the maths with me"
@@ -177,15 +268,19 @@ export function Start() {
             </p>
             <p>= about {START_DEMO.unitsPerMonth.toFixed(1)} units for you</p>
           </div>
+          <ShareBlocksIllustration
+            sellers={START_DEMO.sellers + 1}
+            unitsEach={START_DEMO.unitsPerMonth.toFixed(0)}
+          />
           <p className="mt-4 text-sm" style={{ color: "var(--text-muted)" }}>
             This assumes the Buy Box splits evenly between sellers, and it often
-            doesn&rsquo;t. Price, feedback, FBA and especially Amazon selling on the
-            listing all skew it.
+            doesn&rsquo;t — the list you just saw was 63% to one seller. Price,
+            feedback, FBA and especially Amazon selling on the listing all skew it.
           </p>
         </Panel>
       )}
 
-      {panel === 3 && (
+      {panel === 5 && (
         <Panel
           overline="Make one unit earn its place"
           title="What one product pays"
@@ -193,6 +288,28 @@ export function Start() {
           onBack={() => setPanel(panel - 1)}
         >
           <div className="grid gap-5">
+            <UnitSplitIllustration
+              currency={demoCurrency}
+              salePrice={START_DEMO.price}
+              segments={[
+                {
+                  label: "Amazon and returns",
+                  value: START_DEMO.fees + START_DEMO.returnsAllowance,
+                  tone: "fees",
+                },
+                {
+                  label: "Your landed cost",
+                  value: START_DEMO.landedCost,
+                  tone: "cost",
+                },
+                {
+                  label: "Your profit",
+                  value: START_DEMO.profitPerUnit,
+                  tone: "profit",
+                },
+              ]}
+            />
+
             <ArithmeticGroup title="What comes in">
               <ArithmeticLine
                 label="Sale price"
@@ -263,14 +380,19 @@ export function Start() {
         </Panel>
       )}
 
-      {panel === 4 && (
+      {panel === 6 && (
         <Panel
           overline="Turn one product into a business"
           title={"One product isn’t a business"}
           onNext={() => setPanel(nextStartPanel(panel))}
           onBack={() => setPanel(panel - 1)}
         >
-          <p className="data text-lg">
+          <PortfolioIllustration
+            currency={demoCurrency}
+            products={15}
+            perProduct={START_DEMO.monthlyProfit}
+          />
+          <p className="data mt-4 text-lg">
             15 products × {demoCurrency}{" "}
             {Math.round(START_DEMO.monthlyProfit).toLocaleString("en-US")} ={" "}
             {demoCurrency}{" "}
@@ -284,7 +406,7 @@ export function Start() {
         </Panel>
       )}
 
-      {panel === 5 && (
+      {panel === 7 && (
         <Panel
           overline="Your goal"
           title="What do you want to build?"
@@ -307,7 +429,7 @@ export function Start() {
         </Panel>
       )}
 
-      {panel === 6 && (
+      {panel === 8 && (
         <Panel
           overline="Your starting point"
           title="Capital and marketplace"
@@ -315,7 +437,8 @@ export function Start() {
           onBack={() => setPanel(panel - 1)}
         >
           <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-            Bawo&rsquo;s teaching: {currency} 500 is a minimum; {currency} 2,000 is realistic.
+            A rule of thumb from the training: {currency} 500 is a minimum;{" "}
+            {currency} 2,000 is realistic.
           </p>
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
             <Field label={`Starting capital (${currency})`} value={capital} onChange={setCapital} />
@@ -331,7 +454,7 @@ export function Start() {
         </Panel>
       )}
 
-      {panel === 7 && (
+      {panel === 9 && (
         <Panel
           overline="Your model"
           title="The model, with levers"
