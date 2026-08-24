@@ -1,0 +1,107 @@
+// The database stores state, not methodology. Milestone libraries, fee
+// tables and the jurisdiction rules live in lib/domain so CI validates them.
+//
+// These models follow lib/domain/types.ts, not the other way round.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model SellerProfile {
+  id String @id @default(cuid())
+
+  // "CA" | "US" | "GB". SQLite has no enums; lib/domain/jurisdictions.ts
+  // guards the boundary via isSupportedResidency.
+  residency String
+
+  // Null until they incorporate. Distinct from residency and from marketplace.
+  entityJurisdiction String?
+
+  // JSON array of Marketplace values.
+  marketplaces String @default("[]")
+
+  stage   String @default("pre-account")
+  minRoi  Float  @default(0.3)
+  capital Float  @default(0)
+
+  // Landed cost inputs. Stored flat so they are queryable.
+  inboundPerUnit       Float @default(0)
+  prepPerUnit          Float @default(0)
+  irrecoverableTaxRate Float @default(0)
+  dutyRate             Float @default(0)
+  returnsRate          Float @default(0)
+
+  completedRequirements String @default("[]")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  provenance ProvenanceEntry[]
+}
+
+// Provenance is stored by dotted field path so any value in the profile can
+// answer "who said this, and when" — the seller, a coach, or a default.
+model ProvenanceEntry {
+  id        String   @id @default(cuid())
+  profileId String
+  fieldPath String
+  source    String
+  note      String?
+  at        DateTime @default(now())
+
+  profile SellerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, fieldPath])
+  @@index([profileId])
+}
+
+// Keepa responses are cached by what identifies the data, never by the
+// request URL, which carries the API key. Stale rows are kept rather than
+// deleted: when tokens run out they are the degradation path.
+model KeepaCache {
+  key       String   @id
+  asin      String
+  domain    Int
+  tier      String
+  body      String
+  fetchedAt DateTime @default(now())
+
+  @@index([asin, domain])
+}
+
+// Products persist the *inputs* to an analysis and never its conclusions.
+// Verdict, confidence and buy-below are recomputed on read, so changing a
+// seller's ROI floor re-prices the whole library with nothing to invalidate.
+model Product {
+  id          String  @id @default(cuid())
+  profileId   String
+  asin        String
+  marketplace String
+  title       String?
+  category    String
+  salePrice   Float
+  priceSource String
+  weightTier  String
+  unitCost    Float?
+
+  salesRank       Int?
+  salesRank90dAvg Int?
+  sellerCount     Int?
+  amazonOnListing Boolean?
+  demandPerMonth  Int?
+  seasonality     String   @default("unknown")
+
+  // Every default we had to invent, surfaced with the product.
+  assumptions String @default("[]")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([profileId, asin, marketplace])
+  @@index([profileId])
+}

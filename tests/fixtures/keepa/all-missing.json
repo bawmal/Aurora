@@ -1,0 +1,61 @@
+{
+  "products": [
+    {
+      "asin": "B00NOTHING",
+      "title": "Tracked but never sold",
+      "stats": {
+        "current": [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        "avg90": [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        "buyBoxIsAmazon": null
+      },
+      "categoryTree": [
+        {
+          "name": "Toys & Games"
+        }
+      ]
+    }
+  ],
+  "tokensLeft": 255
+}
