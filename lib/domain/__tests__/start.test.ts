@@ -10,6 +10,8 @@ import { analyse } from "../product"
 import { parseSeries } from "@/lib/keepa/parse"
 import { STAT } from "@/lib/keepa/types"
 import { START_DEMO } from "../start-demo"
+import { ACHIEVEMENTS, MILESTONES, SKILLS, TRACKS } from "../curriculum"
+import { MODULE_GUIDANCE } from "../guidance"
 import {
   BuyBoxIllustration,
   LiveListingCard,
@@ -165,5 +167,28 @@ describe("start navigation", () => {
   it("hides zero-valued arithmetic cost rows", () => {
     expect(showCostRow(0)).toBe(false)
     expect(showCostRow(1.1)).toBe(true)
+  })
+})
+
+describe("seller-facing curriculum copy", () => {
+  it("does not name the data vendor", () => {
+    const strings = [
+      ...MILESTONES.flatMap(({ name, description }) => [name, description]),
+      ...TRACKS.flatMap(({ name, description }) => [name, description]),
+      ...SKILLS.flatMap(({ name, levels }) => [name, ...levels]),
+      ...ACHIEVEMENTS.map(({ name }) => name),
+      ...Object.values(MODULE_GUIDANCE).flatMap(
+        ({ steps, doneWhen, pitfall, duration }) => [
+          ...steps,
+          doneWhen,
+          ...(pitfall ? [pitfall] : []),
+          duration,
+        ],
+      ),
+    ]
+
+    for (const text of strings) {
+      expect(text).not.toMatch(/keepa/i)
+    }
   })
 })

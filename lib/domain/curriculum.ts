@@ -274,7 +274,7 @@ export const SKILLS: SkillDefinition[] = [
   },
   {
     key: "keepa",
-    name: "Reading Keepa",
+    name: "Reading sales rank history",
     levels: [
       "Understand what the chart shows",
       "Read a chart with the mentor",

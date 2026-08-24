@@ -39,7 +39,7 @@ export async function GET(request: Request) {
     // Analysis still works on typed numbers, so this is a degraded path and
     // not an error the seller has to solve.
     return NextResponse.json(
-      { error: "No Keepa key configured. Enter the numbers by hand for now." },
+      { error: "No data source configured. Enter the numbers by hand for now." },
       { status: 503 },
     )
   }
@@ -55,7 +55,7 @@ export async function GET(request: Request) {
     )
     const product = products[0]
     if (!product) {
-      return NextResponse.json({ error: `Keepa has nothing for ${asin}.` }, { status: 404 })
+      return NextResponse.json({ error: `No data was found for ${asin}.` }, { status: 404 })
     }
 
     const result = toAnalysisInput(product, marketplace, Number.isFinite(unitCost) ? unitCost : 0)
@@ -80,17 +80,17 @@ export async function GET(request: Request) {
       // A rejected key is ours to fix, not the seller's, and it must not read
       // as "out of tokens" — that sends everyone waiting for a refill.
       return NextResponse.json(
-        { error: "Keepa rejected our API key. Enter the numbers by hand for now." },
+        { error: "The data source rejected our request. Enter the numbers by hand for now." },
         { status: 502 },
       )
     }
     if (error instanceof KeepaTokensExhausted) {
       return NextResponse.json(
-        { error: "Keepa tokens are exhausted. Try again shortly." },
+        { error: "The data lookup limit is reached. Try again shortly." },
         { status: 429 },
       )
     }
     // Never echo the upstream URL: it carries the key.
-    return NextResponse.json({ error: "Keepa lookup failed." }, { status: 502 })
+    return NextResponse.json({ error: "The data lookup failed." }, { status: 502 })
   }
 }

@@ -229,25 +229,25 @@ export function OffersIllustration({
     <Illustration caption="Illustration of the seller list behind one listing.">
       <div className="p-3">
         <div
-          className="grid grid-cols-[1fr_5rem_8rem] gap-3 border-b pb-2 text-[10px] font-semibold uppercase tracking-[0.08em]"
+          className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 border-b pb-2 text-[10px] font-semibold uppercase tracking-[0.08em] sm:grid-cols-[1fr_5rem_8rem]"
           style={{ borderColor: "var(--hairline)", color: "var(--text-faint)" }}
         >
           <span>Seller</span>
           <span className="text-right">Price</span>
-          <span>Share of the box</span>
+          <span className="col-span-2 sm:col-span-1">Share of the box</span>
         </div>
         <ul className="mt-2 grid gap-2">
           {rows.map((row) => (
             <li
               key={row.seller}
-              className="grid grid-cols-[1fr_5rem_8rem] items-center gap-3 text-xs"
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 text-xs sm:grid-cols-[1fr_5rem_8rem]"
               style={row.you ? { color: "var(--accent)" } : undefined}
             >
-              <span className="truncate">{row.seller}</span>
+              <span className="min-w-0 sm:truncate">{row.seller}</span>
               <span className="data text-right">
                 {currency} {row.price}
               </span>
-              <span className="flex items-center gap-2">
+              <span className="col-span-2 flex items-center gap-2 sm:col-span-1">
                 <span
                   className="h-2 flex-1 overflow-hidden rounded-full"
                   style={{ background: "var(--surface-sunken)" }}
